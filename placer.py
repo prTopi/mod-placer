@@ -5,13 +5,11 @@ data = '/home/topi/Games/Steam/steamapps/common/Skyrim/Data/'
 folders = sorted(os.listdir('Mods'))
 mods = ','.join(sys.argv[1:])
 if mods.strip():
-	mods = [x.split('-') for x in mods.split(',')]
-	mods = [str(y) for x in mods for y in range(int(x[0]), int(x[-1])+1)]
-	mods = [x if len(x) > 1 else '0'+x for x in mods]
+	mods = [str(y) if len(str(y)) > 1 else '0'+str(y) for x in mods.split(',') for y in range(int(x.split('-')[0]), int(x.split('-')[-1])+1)]
 else:
 	mods = [x[:2] for x in folders]
-os.system('rm -rf "{}*"'.format(data))
-[os.system('cp -as --remove-destination "{!s}/Mods/{!s}-*/*" "{}"'.format(os.path.dirname(os.path.realpath(__file__)), x, data)) for x in mods]
+os.system('rm -rf {}*'.format(data))
+[os.system('cp -as --remove-destination {!s}/Mods/{!s}-*/* {}'.format(os.path.dirname(os.path.realpath(__file__)), x, data)) for x in mods]
 files = os.listdir(data)
 with open(pluginsFile) as f:
 	plugins = f.read().splitlines()
