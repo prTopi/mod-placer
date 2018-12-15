@@ -7,7 +7,7 @@ mods = ','.join(sys.argv[1:])
 if mods.strip():
 	mods = [str(y) if len(str(y)) > 1 else '0'+str(y) for x in mods.split(',') for y in range(int(x.split('-')[0]), int(x.split('-')[-1])+1)]
 else:
-	mods = [x[:2] for x in folders]
+	mods = [x[:2] for x in folders if x[:2].isdigit()]
 os.system('rm -rf {}*'.format(data))
 [os.system('cp -as --remove-destination {!s}/Mods/{!s}-*/* {}'.format(os.path.dirname(os.path.realpath(__file__)), x, data)) for x in mods]
 files = os.listdir(data)
@@ -20,4 +20,3 @@ with open(pluginsFile, 'w') as f:
 	if newfiles:
 		f.write('\n\n#NEW STUFF\n')
 		[f.write(x+'\n') for x in newfiles]
-		os.system('kate "{}"'.format(pluginsFile))
