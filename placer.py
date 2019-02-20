@@ -2,6 +2,8 @@
 from sys import argv
 from platform import platform, python_version
 from os import listdir, system, path, rename
+from json import load
+from urllib.request import urlopen, Request
 from configparser import ConfigParser
 from PyQt5.QtWidgets import QApplication, QWidget, QListWidget, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QAbstractItemView, QListWidgetItem, QInputDialog, QLineEdit, QMessageBox
 from PyQt5.QtCore import Qt
@@ -11,9 +13,9 @@ __version__ = '0.1.0'
 class ModPlacer(QWidget):
 	def __init__(self):
 		super().__init__()
-		self.headers = {'User-Agent': 'ModPlacer/{} ({}), Python/{}'.format(__version__, platform(), python_version())}
 		self.config = ConfigParser()
 		self.config.read('config.ini')
+		self.headers = {'User-Agent': 'ModPlacer/{} ({}) Python/{}'.format(__version__, platform(), python_version()), 'apikey': self.config['Common']['api']}
 		self.folder = path.dirname(path.realpath(__file__))
 		self.initUI()
 
@@ -24,6 +26,8 @@ class ModPlacer(QWidget):
 		bRefresh.clicked.connect(self.refreshMods)
 		bUpdates = QPushButton('Check for updates')
 		bUpdates.clicked.connect(self.checkUpdates)
+		if not self.config['Common']['api']:
+			bUpdates.setEnabled(False)
 		modBox = QVBoxLayout()
 		self.modList = QListWidget(self)
 		self.modList.itemDoubleClicked.connect(lambda: self.changeModInfo(self.modList.currentItem()))
@@ -111,7 +115,21 @@ class ModPlacer(QWidget):
 			self.config.write(cFile)
 
 	def checkUpdates(self):
-		QMessageBox.information(self, 'Mod updates', 'Mod updates:\n\n\n' + self.headers['User-Agent'], QMessageBox.Ok)
+		self.setEnabled(False)
+		updates = ''
+		for index in range(self.modList.count()):
+			mod = self.modList.item(index)
+			modData = mod.data(Qt.UserRole).split('|')
+			if modData[0] != '0':
+				modID = modData[0].split('/')
+				if len(modID) == 1:
+					modID.append(self.config['Common']['game'])
+				with urlopen(Request('https://api.nexusmods.com/v1/games/{}/mods/{}.json'.format(modID[1], modID[0]), headers=self.headers)) as page:
+					version = load(page)['version']
+				if modData[1] != version:
+					updates += '\n{}: {} --> {}'.format(mod.text(), modData[1], version)
+		self.setEnabled(True)
+		QMessageBox.information(self, 'Mod updates', 'Mod updates:\n' + updates, QMessageBox.Ok)
 
 	def closeEvent(self, event):
 		self.saveConfig()
