@@ -64,6 +64,9 @@ class ModPlacer(QWidget):
 		self.show()
 
 	def refreshMods(self):
+		self.saveConfig()
+		self.modList.clear()
+		[self.addModItem(*self.config['Mods'][mod].split('|')) for mod in self.config['Mods']]
 		[self.addModItem(mod) for mod in listdir('mods')]
 		self.loadOrder.clear()
 		[self.addLoadItem(*self.config['LoadOrder'][esp].split('|')) for esp in self.config['LoadOrder']]
