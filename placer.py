@@ -98,7 +98,7 @@ class ModPlacer(QWidget):
 		[self.addModItem(mod) for mod in listdir('mods')]
 		self.loadOrder.clear()
 		[self.addLoadItem(*self.config['LoadOrder'][esp].split('|')) for esp in self.config['LoadOrder']]
-		[self.addLoadItem(esp) for esp in listdir(path.join(self.config['Common']['data'])) if esp.endswith(('.esm', '.esp', '.esl'))]
+		[self.addLoadItem(esp) for esp in listdir(self.config['Common']['data']) if esp.endswith(('.esm', '.esp', '.esl'))]
 
 	def changeModInfo(self, item):
 		self.setEnabled(False)
@@ -139,7 +139,7 @@ class ModPlacer(QWidget):
 		self.saveConfig()
 		rmtree(self.config['Common']['data'])
 		mkdir(self.config['Common']['data'])
-		[self.linktree(path.join(self.modList.item(index).text()), self.config['Common']['data']) for index in range(self.modList.count()) if self.modList.item(index).checkState()]
+		[self.linktree(self.modList.item(index).text(), self.config['Common']['data']) for index in range(self.modList.count()) if self.modList.item(index).checkState()]
 		self.refreshMods()
 		self.setEnabled(True)
 
