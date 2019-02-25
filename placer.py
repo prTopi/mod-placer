@@ -149,11 +149,12 @@ class ModPlacer(QWidget):
 		loadBox.addWidget(QLabel('Load Order', self))
 		loadBox.addWidget(self.loadList)
 		bOptions = QPushButton('Options')
-		bOptions.clicked.connect(self.exit)
+		bOptions.clicked.connect(self.parent.refresh)
+		bOptions.clicked.connect(self.parent.show)
 		bUpdates = QPushButton('Check for updates')
 		bUpdates.clicked.connect(self.checkUpdates)
 		bRefresh = QPushButton('Refresh')
-		bRefresh.clicked.connect(self.refreshMods)
+		bRefresh.clicked.connect(lambda: self.refreshMods())
 		self.bSave = QPushButton('Save')
 		self.bSave.clicked.connect(self.selectSave)
 		topBox = QHBoxLayout()
@@ -282,11 +283,6 @@ class ModPlacer(QWidget):
 		if not updates:
 			updates = 'No mod updates found.'
 		QMessageBox.information(self, 'Mod updates', 'Mod updates:\n' + updates, QMessageBox.Ok)
-
-	def exit(self):
-		self.parent.refresh()
-		self.parent.show()
-		self.close()
 
 	def closeEvent(self, event):
 		self.saveConfig()
