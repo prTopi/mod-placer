@@ -9,7 +9,7 @@ from configparser import ConfigParser
 from PyQt5.QtWidgets import QApplication, QWidget, QDialog, QDialogButtonBox, QListWidget, QListWidgetItem, QComboBox, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QAbstractItemView, QLineEdit, QMessageBox
 from PyQt5.QtCore import Qt
 
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 class ChooseConfig(QDialog):
 	def __init__(self):
@@ -17,49 +17,80 @@ class ChooseConfig(QDialog):
 		self.setWindowTitle('Choose Config')
 		layout = QVBoxLayout(self)
 		self.config = ConfigParser()
-		self.selectedConfig = ''
-		if path.isfile('config.ini'):
-			self.config.read('config.ini')
-		else:
-			self.config['DEFAULT'] = {'api': '', 'config': ''}
-		self.api = QLineEdit(self.config['DEFAULT']['api'], self)
+		self.config.read('config.ini')
+		self.api = QLineEdit(self.config.get('DEFAULT', 'api', fallback=''), self)
 		self.configList = QComboBox(self)
-		[self.configList.addItem(conf) for conf in listdir() if conf.endswith('.ini') and conf != 'config.ini']
-		self.configList.addItem('New config')
+		self.refresh()
 		layout.addWidget(QLabel('Api Key', self))
 		layout.addWidget(self.api)
 		layout.addWidget(QLabel('Select Config', self))
 		layout.addWidget(self.configList)
-		buttons = QDialogButtonBox(QDialogButtonBox.Ok, Qt.Horizontal, self)
-		buttons.accepted.connect(self.loadConfig)
-		layout.addWidget(buttons)
+		bEdit = QPushButton('Edit', self)
+		bEdit.clicked.connect(lambda: self.editConfig(self.configList.currentText()))
+		bLoad = QPushButton('Load', self)
+		bLoad.clicked.connect(self.loadConfig)
+		bBox = QHBoxLayout()
+		bBox.addWidget(bEdit)
+		bBox.addStretch(1)
+		bBox.addWidget(bLoad)
+		layout.addLayout(bBox)
+		self.setMinimumWidth(300)
 		self.show()
-		conf = self.config['DEFAULT']['config']
-		if conf in listdir() and conf.endswith('.ini') and conf != 'config.ini':
-			self.selectedConfig = conf
+		conf = self.config.get('DEFAULT', 'config', fallback='')
+		if self.configList.findText(conf, Qt.MatchExactly) != -1:
+			self.configList.setCurrentIndex(self.configList.findText(conf, Qt.MatchExactly))
 			self.loadConfig()
+		else:
+			self.configList.setCurrentIndex(0)
+
+	def refresh(self):
+		self.configList.clear()
+		[self.configList.addItem(conf) for conf in listdir() if conf.endswith('.ini') and conf != 'config.ini']
+		self.configList.addItem('New config')
+		conf = self.config.get('DEFAULT', 'config', fallback='')
+		if self.configList.findText(conf, Qt.MatchExactly) != -1:
+			self.configList.setCurrentIndex(self.configList.findText(conf, Qt.MatchExactly))
+		else:
+			self.configList.setCurrentIndex(0)
+
+	def editConfig(self, name):
+		self.setEnabled(False)
+		config = ConfigParser()
+		config.read(name)
+		game = self.config.get('Common', 'game', fallback='')
+		mods = self.config.get('Common', 'mods', fallback='')
+		data = self.config.get('Common', 'data', fallback='')
+		plugins = self.config.get('Common', 'plugins', fallback='')
+		prefix = self.config.get('Common', 'pluginpref', fallback='')
+		self.dialog = EditDialog({'File Name': name[:-4], 'Nexus Game': game, 'Mods Directory': mods, 'Data Path': data, 'Plugins.txt File': plugins, 'Plugins.txt Line Prefix': prefix}, self)
+		if self.dialog.exec_():
+			name, game, mods, data, plugins, prefix = self.dialog.getValues()
+			name += '.ini'
+			if self.configList.currentText() != name and name in listdir():
+				QMessageBox.information(self, 'File already exists', 'Mod config with that name already exists.', QMessageBox.Ok)
+				return
+			config['Common'] = {'data': path.realpath(data), 'game': game, 'mods': path.realpath(mods), 'plugins': path.realpath(plugins), 'pluginpref': prefix}
+			if not config.has_section('Mods'):
+				config.add_section('Mods')
+			if not config.has_section('LoadOrder'):
+				config.add_section('LoadOrder')
+			with open(name, 'w') as cFile:
+				config.write(cFile)
+		self.refresh()
+		self.configList.setCurrentIndex(self.configList.findText(name, Qt.MatchExactly))
+		self.setEnabled(True)
 
 	def loadConfig(self):
 		self.setEnabled(False)
-		if not self.selectedConfig:
-			self.selectedConfig = self.configList.currentText()
-		if self.configList.currentText() == 'New config':
-			self.dialog = EditDialog((('Config Name', ''), ('Nexus Game', ''), ('Mods Directory', ''), ('Data Path', ''), ('Plugins.txt File', ''), ('Plugins.txt Line Prefix', '')), self)
-			if self.dialog.exec_():
-				name, game, mods, data, plugins, prefix = self.dialog.getValues()
-				newConfig = ConfigParser()
-				newConfig['Common'] = {'data': path.realpath(data), 'game': game, 'mods': path.realpath(mods), 'plugins': path.realpath(plugins), 'pluginpref': prefix}
-				newConfig['Mods'] = {}
-				newConfig['LoadOrder'] = {}
-				with open(name + '.ini', 'w') as cFile:
-					newConfig.write(cFile)
-				self.selectedConfig = name + '.ini'
-		self.config['DEFAULT']['config'] = self.selectedConfig
+		confName = self.configList.currentText()
+		if confName == 'New config' or confName not in listdir():
+			self.editConfig(confName)
+			return
+		self.config['DEFAULT']['config'] = confName
 		self.config['DEFAULT']['api'] = self.api.text()
 		with open('config.ini', 'w') as cFile:
 			self.config.write(cFile)
-		ModPlacer(self.selectedConfig, self.api.text(), self)
-		self.selectedConfig = ''
+		ModPlacer(confName, self.api.text(), self)
 		self.hide()
 		self.setEnabled(True)
 
@@ -69,12 +100,13 @@ class EditDialog(QDialog):
 		self.setWindowTitle('Edit Info')
 		layout = QVBoxLayout(self)
 		for box in editBoxes:
-			layout.addWidget(QLabel(box[0], self))
-			layout.addWidget(QLineEdit(box[1], self))
+			layout.addWidget(QLabel(box, self))
+			layout.addWidget(QLineEdit(editBoxes[box], self))
 		buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
 		buttons.accepted.connect(self.accept)
 		buttons.rejected.connect(self.reject)
 		layout.addWidget(buttons)
+		self.setMinimumWidth(400)
 		self.show()
 
 	def getValues(self):
@@ -90,47 +122,49 @@ class ModPlacer(QWidget):
 		self.parent = parent
 		self.headers = {'User-Agent': 'ModPlacer/{} ({}) Python/{}'.format(__version__, platform(), python_version()), 'apikey': self.api}
 		self.folder = path.dirname(path.realpath(__file__))
-		self.data = self.config['Common']['data']
-		self.mods = self.config['Common']['mods']
-		self.plugins = self.config['Common']['plugins']
-		self.pPrefix = self.config['Common']['pluginPref']
+		self.data = self.config.get('Common', 'data', fallback='Data')
+		self.game = self.config.get('Common', 'game', fallback=self.configName[:-4])
+		self.mods = self.config.get('Common', 'mods', fallback='mods ' + self.configName[:-4])
+		self.plugins = self.config.get('Common', 'plugins', fallback='plugins.txt')
+		self.pPrefix = self.config.get('Common', 'pPrefix', fallback='')
+		if not self.config.has_section('Mods'):
+			self.config.add_section('Mods')
+		self.modOrder = self.config['Mods']
+		if not self.config.has_section('LoadOrder'):
+			self.config.add_section('LoadOrder')
+		self.loadOrder = self.config['LoadOrder']
 		self.initUI()
 
 	def initUI(self):
-		self.resize(850, 700)
-		self.setWindowTitle('Mod Placer')
+		self.setWindowTitle('Mod Placer - ' + self.configName[:-4])
 		modBox = QVBoxLayout()
 		self.modList = QListWidget(self)
 		self.modList.itemDoubleClicked.connect(lambda: self.changeModInfo(self.modList.currentItem()))
 		self.modList.setDragDropMode(QAbstractItemView.InternalMove)
-		[self.addModItem(*self.config['Mods'][mod].split('|')) for mod in self.config['Mods']]
 		modBox.addWidget(QLabel('Mods', self))
 		modBox.addWidget(self.modList)
 		loadBox = QVBoxLayout()
-		self.loadOrder = QListWidget(self)
-		self.loadOrder.setDragDropMode(QAbstractItemView.InternalMove)
-		[self.addLoadItem(*self.config['LoadOrder'][esp].split('|')) for esp in self.config['LoadOrder']]
+		self.loadList = QListWidget(self)
+		self.loadList.setDragDropMode(QAbstractItemView.InternalMove)
 		loadBox.addWidget(QLabel('Load Order', self))
-		loadBox.addWidget(self.loadOrder)
-		bRefresh = QPushButton('Refresh')
-		bRefresh.clicked.connect(self.refreshMods)
+		loadBox.addWidget(self.loadList)
+		bOptions = QPushButton('Options')
+		bOptions.clicked.connect(self.exit)
 		bUpdates = QPushButton('Check for updates')
 		bUpdates.clicked.connect(self.checkUpdates)
-		bOptions = QPushButton('Options')
-		bOptions.clicked.connect(self.parent.show)
-		bOptions.clicked.connect(self.close)
-		bSave = QPushButton('Save')
-		bSave.clicked.connect(self.selectSave)
+		bRefresh = QPushButton('Refresh')
+		bRefresh.clicked.connect(self.refreshMods)
+		self.bSave = QPushButton('Save')
+		self.bSave.clicked.connect(self.selectSave)
 		topBox = QHBoxLayout()
 		topBox.addLayout(modBox)
 		topBox.addLayout(loadBox)
 		botBox = QHBoxLayout()
-		botBox.addWidget(bRefresh)
 		botBox.addWidget(bUpdates)
-		botBox.addStretch(1)
 		botBox.addWidget(bOptions)
-		botBox.addStretch(2)
-		botBox.addWidget(bSave)
+		botBox.addStretch()
+		botBox.addWidget(bRefresh)
+		botBox.addWidget(self.bSave)
 		layout = QVBoxLayout(self)
 		layout.addLayout(topBox)
 		layout.addLayout(botBox)
@@ -138,28 +172,34 @@ class ModPlacer(QWidget):
 			bUpdates.setEnabled(False)
 		if not path.isdir(self.data):
 			QMessageBox.critical(self, 'Error', 'Data folder not found. ({})'.format(self.data), QMessageBox.Ok)
-			bRefresh.setEnabled(False)
-			bSave.setEnabled(False)
+			self.bSave.setEnabled(False)
 		if not path.isdir(path.dirname(self.plugins)):
-			QMessageBox.critical(self, 'Error', 'Plugins config folder not found. ({})'.format(path.isdir(path.dirname(self.plugins))), QMessageBox.Ok)
+			QMessageBox.critical(self, 'Error', 'Plugins config folder not found. ({})'.format(path.dirname(self.plugins)), QMessageBox.Ok)
 		if not path.isdir(self.mods):
 			mkdir(self.mods)
+		self.resize(850, 700)
+		self.refreshMods(save=False)
 		self.show()
-		self.refreshMods()
 
-	def refreshMods(self):
-		self.saveConfig()
+	def refreshMods(self, save=True):
+		if path.isdir(self.data):
+			self.bSave.setEnabled(True)
+		else:
+			self.bSave.setEnabled(False)
+		if save:
+			self.saveConfig()
 		self.modList.clear()
-		[self.addModItem(*self.config['Mods'][mod].split('|')) for mod in self.config['Mods']]
+		[self.addModItem(*self.modOrder[mod].split('|')) for mod in self.modOrder]
 		[self.addModItem(mod) for mod in listdir(self.mods)]
-		self.loadOrder.clear()
-		[self.addLoadItem(*self.config['LoadOrder'][esp].split('|')) for esp in self.config['LoadOrder']]
-		[self.addLoadItem(esp) for esp in listdir(self.data) if esp.endswith(('.esm', '.esp', '.esl'))]
+		self.loadList.clear()
+		[self.addLoadItem(*self.loadOrder[esp].split('|')) for esp in self.loadOrder]
+		if path.isdir(self.data):
+			[self.addLoadItem(esp) for esp in listdir(self.data) if esp.endswith(('.esm', '.esp', '.esl'))]
 
 	def changeModInfo(self, item):
 		self.setEnabled(False)
 		iData = item.data(Qt.UserRole).split('|')
-		self.dialog = EditDialog((('Name', item.text()), ('Mod ID', iData[0]), ('Version', iData[1])), self)
+		self.dialog = EditDialog({'Name': item.text(), 'Mod ID': iData[0], 'Version': iData[1]}, self)
 		if self.dialog.exec_():
 			name, modID, version = self.dialog.getValues()
 			if name != item.text():
@@ -185,19 +225,17 @@ class ModPlacer(QWidget):
 
 	def addLoadItem(self, esp, check=Qt.Unchecked):
 		if path.islink(path.join(self.data, esp)):
-			if not self.loadOrder.findItems(esp, Qt.MatchExactly):
+			if not self.loadList.findItems(esp, Qt.MatchExactly):
 				loadItem = QListWidgetItem(esp)
 				loadItem.setData(Qt.CheckStateRole, check)
-				self.loadOrder.addItem(loadItem)
+				self.loadList.addItem(loadItem)
 
 	def selectSave(self):
-		self.setEnabled(False)
-		self.saveConfig()
+		self.refreshMods()
 		rmtree(self.data)
 		mkdir(self.data)
 		[self.linktree(self.modList.item(index).text(), self.data) for index in range(self.modList.count()) if self.modList.item(index).checkState()]
 		self.refreshMods()
-		self.setEnabled(True)
 
 	def linktree(self, source, destination):
 		for item in listdir(path.join(self.mods, source)):
@@ -213,14 +251,16 @@ class ModPlacer(QWidget):
 				symlink(src, dst)
 
 	def saveConfig(self):
-		if self.loadOrder.count() + 5 < len(self.config['LoadOrder']):
+		if self.loadList.count() + 5 < len(self.loadOrder):
 			if QMessageBox.warning(self, 'Warning', 'Load order count varies greatly from config count.\nDo you want to skip saving?', QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
 				return
 		self.config['Mods'] = {x: '|'.join([self.modList.item(x).text(), str(self.modList.item(x).checkState()), self.modList.item(x).data(Qt.UserRole)]) for x in range(self.modList.count())}
-		self.config['LoadOrder'] = {x: '|'.join([self.loadOrder.item(x).text(), str(self.loadOrder.item(x).checkState())]) for x in range(self.loadOrder.count())}
+		self.config['LoadOrder'] = {x: '|'.join([self.loadList.item(x).text(), str(self.loadList.item(x).checkState())]) for x in range(self.loadList.count())}
+		self.modOrder = self.config['Mods']
+		self.loadOrder = self.config['LoadOrder']
 		if path.isdir(path.dirname(self.plugins)):
 			with open(path.join(self.plugins), 'w') as pFile:
-				[pFile.write('{}{}\n'.format(self.pPrefix, self.loadOrder.item(index).text())) for index in range(self.loadOrder.count()) if self.loadOrder.item(index).checkState()]
+				[pFile.write('{}{}\n'.format(self.pPrefix, self.loadList.item(index).text())) for index in range(self.loadList.count()) if self.loadList.item(index).checkState()]
 		with open(self.configName, 'w') as cFile:
 			self.config.write(cFile)
 
@@ -233,7 +273,7 @@ class ModPlacer(QWidget):
 			if modData[0] != '0':
 				modID = modData[0].split('/')
 				if len(modID) == 1:
-					modID.append(self.config['Common']['game'])
+					modID.append(self.game)
 				with urlopen(Request('https://api.nexusmods.com/v1/games/{}/mods/{}.json'.format(modID[1], modID[0]), headers=self.headers)) as page:
 					version = load(page)['version']
 				if modData[1] != version:
@@ -242,6 +282,11 @@ class ModPlacer(QWidget):
 		if not updates:
 			updates = 'No mod updates found.'
 		QMessageBox.information(self, 'Mod updates', 'Mod updates:\n' + updates, QMessageBox.Ok)
+
+	def exit(self):
+		self.parent.refresh()
+		self.parent.show()
+		self.close()
 
 	def closeEvent(self, event):
 		self.saveConfig()
