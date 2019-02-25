@@ -124,7 +124,7 @@ class ModPlacer(QWidget):
 		self.folder = path.dirname(path.realpath(__file__))
 		self.data = self.config.get('Common', 'data', fallback='Data')
 		self.game = self.config.get('Common', 'game', fallback=self.configName[:-4])
-		self.mods = self.config.get('Common', 'mods', fallback='mods ' + self.configName[:-4])
+		self.mods = self.config.get('Common', 'mods', fallback='mods')
 		self.plugins = self.config.get('Common', 'plugins', fallback='plugins.txt')
 		self.pPrefix = self.config.get('Common', 'pPrefix', fallback='')
 		if not self.config.has_section('Mods'):
