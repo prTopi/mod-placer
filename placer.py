@@ -151,6 +151,7 @@ class ModPlacer(QWidget):
 		bOptions = QPushButton('Options')
 		bOptions.clicked.connect(self.parent.refresh)
 		bOptions.clicked.connect(self.parent.show)
+		bOptions.clicked.connect(self.close)
 		bUpdates = QPushButton('Check for updates')
 		bUpdates.clicked.connect(self.checkUpdates)
 		bRefresh = QPushButton('Refresh')
