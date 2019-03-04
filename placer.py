@@ -1,15 +1,15 @@
 #!/bin/python
 from sys import argv
 from platform import platform, python_version
-from os import listdir, path, rename, symlink, mkdir, unlink
-from shutil import rmtree
+from os import listdir, path, rename, symlink, mkdir, makedirs, rmdir, unlink
+from shutil import copy2
 from json import load
 from urllib.request import urlopen, Request
 from configparser import ConfigParser
 from PyQt5.QtWidgets import QApplication, QWidget, QDialog, QDialogButtonBox, QListWidget, QListWidgetItem, QComboBox, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QAbstractItemView, QLineEdit, QMessageBox
 from PyQt5.QtCore import Qt
 
-__version__ = '0.2.3'
+__version__ = '0.2.4'
 
 class ChooseConfig(QDialog):
 	def __init__(self):
@@ -123,7 +123,6 @@ class ModPlacer(QWidget):
 		self.api = api
 		self.parent = parent
 		self.headers = {'User-Agent': 'ModPlacer/{} ({}) Python/{}'.format(__version__, platform(), python_version()), 'apikey': self.api}
-		self.folder = path.dirname(path.realpath(__file__))
 		self.data = self.config.get('Common', 'data', fallback='Data')
 		self.game = self.config.get('Common', 'game', fallback=self.configName[:-4])
 		self.mods = self.config.get('Common', 'mods', fallback='mods')
@@ -131,10 +130,8 @@ class ModPlacer(QWidget):
 		self.pPrefix = self.config.get('Common', 'pluginpref', fallback='')
 		if not self.config.has_section('Mods'):
 			self.config.add_section('Mods')
-		self.modOrder = self.config['Mods']
 		if not self.config.has_section('LoadOrder'):
 			self.config.add_section('LoadOrder')
-		self.loadOrder = self.config['LoadOrder']
 		self.initUI()
 
 	def initUI(self):
@@ -195,10 +192,10 @@ class ModPlacer(QWidget):
 		if save:
 			self.saveConfig()
 		self.modList.clear()
-		[self.addModItem(*self.modOrder[mod].split('|')) for mod in self.modOrder]
+		[self.addModItem(*self.config['Mods'][mod].split('|')) for mod in self.config['Mods']]
 		[self.addModItem(mod) for mod in listdir(self.mods)]
 		self.loadList.clear()
-		[self.addLoadItem(*self.loadOrder[esp].split('|')) for esp in self.loadOrder]
+		[self.addLoadItem(*self.config['LoadOrder'][esp].split('|')) for esp in self.config['LoadOrder']]
 		if path.isdir(self.data):
 			[self.addLoadItem(esp) for esp in listdir(self.data) if esp.endswith(('.esm', '.esp', '.esl'))]
 
@@ -238,32 +235,38 @@ class ModPlacer(QWidget):
 
 	def selectSave(self):
 		self.refreshMods()
-		rmtree(self.data)
+		self.copyTree(self.data, path.join(self.mods, 'Data Backup'), rm=True)
 		mkdir(self.data)
-		[self.linktree(self.modList.item(index).text(), self.data) for index in range(self.modList.count()) if self.modList.item(index).checkState()]
+		[self.copyTree(path.join(self.mods, self.modList.item(index).text()), self.data) for index in range(self.modList.count()) if self.modList.item(index).checkState()]
 		self.refreshMods()
 
-	def linktree(self, source, destination):
-		for item in listdir(path.join(self.mods, source)):
-			src = path.join(self.mods, source, item)
+	def copyTree(self, source, destination, rm=False):
+		for item in listdir(source):
+			src = path.join(source, item)
 			dst = path.join(destination, item)
 			if path.isdir(src):
-				if not path.isdir(dst):
+				if not path.isdir(dst) and not rm:
 					mkdir(dst)
-				self.linktree(src, dst)
+				self.copyTree(src, dst, rm)
 			else:
 				if path.islink(dst):
 					unlink(dst)
-				symlink(src, dst)
+				if rm:
+					if path.isfile(src) and not path.islink(src):
+						makedirs(path.dirname(dst), exist_ok=True)
+						copy2(src, dst)
+					unlink(src)
+				else:
+					symlink(src, dst)
+		if rm:
+			rmdir(source)
 
 	def saveConfig(self):
-		if self.loadList.count() + 5 < len(self.loadOrder):
+		if self.loadList.count() + 5 < len(self.config['LoadOrder']):
 			if QMessageBox.warning(self, 'Warning', 'Load order count varies greatly from config count.\nDo you want to skip saving?', QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
 				return
 		self.config['Mods'] = {x: '|'.join([self.modList.item(x).text(), str(self.modList.item(x).checkState()), self.modList.item(x).data(Qt.UserRole)]) for x in range(self.modList.count())}
 		self.config['LoadOrder'] = {x: '|'.join([self.loadList.item(x).text(), str(self.loadList.item(x).checkState())]) for x in range(self.loadList.count())}
-		self.modOrder = self.config['Mods']
-		self.loadOrder = self.config['LoadOrder']
 		if path.isdir(path.dirname(self.plugins)):
 			with open(path.join(self.plugins), 'w') as pFile:
 				[pFile.write('{}{}\n'.format(self.pPrefix, self.loadList.item(index).text())) for index in range(self.loadList.count()) if self.loadList.item(index).checkState()]
