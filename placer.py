@@ -280,15 +280,15 @@ class ModPlacer(QWidget):
 			mod = self.modList.item(index)
 			modData = mod.data(Qt.UserRole)
 			if modData[0] != '0':
-				modID = modData[1].split('/')
+				modID = modData[0].split('/')
 				if len(modID) == 1:
 					modID.append(self.game)
-				site = '{}/mods/{}'.format(modID[1], modData[0])
+				site = '{}/mods/{}'.format(modID[1], modID[0])
 				try:
 					with urlopen(Request('https://api.nexusmods.com/v1/games/{}.json'.format(site), headers=self.headers)) as page:
 						version = load(page)['version']
-					if modID[0] != version:
-						updates += '<br><a href=https://www.nexusmods.com/{}?tab=files>{}: {} --> {}</a>'.format(site, mod.text(), modID[0], version)
+					if modData[1] != version:
+						updates += '<br><a href=https://www.nexusmods.com/{}?tab=files>{}: {} --> {}</a>'.format(site, mod.text(), modData[1], version)
 				except:
 					updates += '<br><p>Failed opening nexus site for: {}</p>'.format(mod.text())
 		if not updates:
