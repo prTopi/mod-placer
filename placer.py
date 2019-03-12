@@ -55,6 +55,8 @@ class ChooseConfig(QDialog):
 
 	def editConfig(self, name):
 		self.setEnabled(False)
+		if not name.endswith('.json'):
+			name += '.json'
 		if name in listdir():
 			with open(name) as f:
 				config = load(f)
