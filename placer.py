@@ -9,7 +9,7 @@ from configparser import ConfigParser
 from PyQt5.QtWidgets import QApplication, QWidget, QDialog, QDialogButtonBox, QListWidget, QListWidgetItem, QComboBox, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QAbstractItemView, QLineEdit, QMessageBox
 from PyQt5.QtCore import Qt
 
-__version__ = '0.2.4'
+__version__ = '0.2.5'
 
 class ChooseConfig(QDialog):
 	def __init__(self):
