@@ -299,6 +299,7 @@ class ModPlacer(QWidget):
 		self.setEnabled(True)
 
 	def closeEvent(self, event):
+		super().closeEvent(event)
 		self.saveConfig()
 
 if __name__ == '__main__':
