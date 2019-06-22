@@ -61,7 +61,7 @@ class ChooseConfig(QDialog):
 			with open(name) as f:
 				config = load(f)
 		else:
-			config = {'Settings': {}, 'Mods': {}, 'LoadOder': {}}
+			config = {'Settings': {}, 'Mods': {}, 'LoadOrder': {}}
 		game = config['Settings'].get('game', '')
 		mods = config['Settings'].get('mods', '')
 		data = config['Settings'].get('data', '')
