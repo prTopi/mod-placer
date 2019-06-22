@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from sys import argv
 from platform import platform, python_version
-from os import listdir, path, rename, symlink, mkdir, makedirs, rmdir, unlink
+from os import (listdir, path, rename, symlink, mkdir, makedirs, rmdir,
+                unlink, utime)
 from shutil import copy2
 from json import load, dump
 from urllib.request import urlopen, Request
@@ -313,6 +314,14 @@ class ModPlacer(QWidget):
         self.config['LoadOrder'] = {x: (self.loadList.item(x).text(),
                                         self.loadList.item(x).checkState())
                                     for x in range(self.loadList.count())}
+        newTime = 978300000
+        for x in listdir(self.data):
+            if x.endswith('.bsa'):
+                utime(path.join(self.data, x), (newTime, newTime))
+        for x in range(self.loadList.count()):
+            pluginFile = self.loadList.item(x).text()
+            utime(path.join(self.data, pluginFile), (newTime, newTime))
+            newTime += 1
         if path.isdir(path.dirname(self.plugins)):
             with open(path.join(self.plugins), 'w') as f:
                 for index in range(self.loadList.count()):
