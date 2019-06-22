@@ -151,7 +151,7 @@ class ModPlacer(QWidget):
         self.data = self.config['Settings'].get('data', 'Data')
         self.game = self.config['Settings'].get('game', self.configName[:-5])
         self.mods = self.config['Settings'].get('mods', 'mods')
-        self.plugins = self.config['Settings'].get('plugins', 'plugins.txt')
+        self.plugins = self.config['Settings'].get('plugins', '')
         self.pPrefix = self.config['Settings'].get('pluginpref', '')
         self.config.setdefault('Mods', {})
         self.config.setdefault('LoadOrder', {})
@@ -198,13 +198,14 @@ class ModPlacer(QWidget):
         if not self.api:
             bUpdates.setEnabled(False)
         if not path.isdir(self.data):
-            QMessageBox.critical(self, 'Error', 'Data folder not found. '
-                                 f'({self.data})', QMessageBox.Ok)
+            QMessageBox.critical(self, 'Error', 'Data folder not found.'
+                                 f' ({self.data})', QMessageBox.Ok)
             self.bSave.setEnabled(False)
-        if not path.isdir(path.dirname(self.plugins)):
-            QMessageBox.critical(self, 'Error', 'Plugins folder not found. '
-                                 f'({path.dirname(self.plugins)})',
-                                 QMessageBox.Ok)
+        if self.plugins != '':
+            if not path.isdir(path.dirname(self.plugins)):
+                QMessageBox.critical(self, 'Error', 'Plugins folder not found.'
+                                    f' ({path.dirname(self.plugins)})',
+                                    QMessageBox.Ok)
         if not path.isdir(self.mods):
             mkdir(self.mods)
         self.resize(850, 700)
