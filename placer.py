@@ -321,7 +321,10 @@ class ModPlacer(QWidget):
                 utime(path.join(self.data, x), (newTime, newTime))
         for x in range(self.loadList.count()):
             pluginFile = self.loadList.item(x).text()
-            utime(path.join(self.data, pluginFile), (newTime, newTime))
+            try:
+                utime(path.join(self.data, pluginFile), (newTime, newTime))
+            except FileNotFoundError:
+                pass
             newTime += 1
         if path.isdir(path.dirname(self.plugins)):
             with open(path.join(self.plugins), 'w') as f:
