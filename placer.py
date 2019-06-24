@@ -318,7 +318,10 @@ class ModPlacer(QWidget):
         newTime = 978300000
         for x in listdir(self.data):
             if x.endswith('.bsa'):
-                utime(path.join(self.data, x), (newTime, newTime))
+                try:
+                    utime(path.join(self.data, x), (newTime, newTime))
+                except FileNotFoundError:
+                    pass
         for x in range(self.loadList.count()):
             pluginFile = self.loadList.item(x).text()
             try:
