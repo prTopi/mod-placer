@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 from sys import argv
 from platform import platform, python_version
-from os import (listdir, path, rename, symlink, mkdir, makedirs, rmdir,
+from os import (listdir, path, rename, symlink, makedirs, rmdir,
                 unlink, utime)
 from shutil import copy2
 from json import load, dump
 from urllib.request import urlopen, Request
 from configparser import ConfigParser
-from PyQt5.QtWidgets import (QApplication, QWidget, QDialog, QDialogButtonBox,
-                             QListWidget, QListWidgetItem, QComboBox,
-                             QPushButton, QLabel, QVBoxLayout, QHBoxLayout,
-                             QAbstractItemView, QLineEdit, QMessageBox)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QDialog,
+                             QDialogButtonBox, QListWidgetItem, QLabel,
+                             QVBoxLayout, QLineEdit, QMessageBox)
 from PyQt5.QtCore import Qt
+from ui.options import Ui_ConfigDialog
+from ui.mainwindow import Ui_MainWindow
 
 __version__ = '0.2.5'
 
@@ -19,48 +20,36 @@ __version__ = '0.2.5'
 class ChooseConfig(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('Choose Config')
-        layout = QVBoxLayout(self)
         self.config = ConfigParser(defaults={'api': '', 'config': ''})
         self.config.read('placer.ini')
-        self.api = QLineEdit(self.config['DEFAULT']['api'], self)
-        self.configList = QComboBox(self)
+        self.Ui = Ui_ConfigDialog()
+        self.Ui.setupUi(self)
+        self.Ui.lineEditApi.setText(self.config['DEFAULT']['api'])
+        self.Ui.pushButtonEdit.clicked.connect(lambda: self.editConfig(
+            self.Ui.comboBoxConfig.currentText()))
+        self.Ui.pushButtonLoad.clicked.connect(self.loadConfig)
         self.refresh()
-        layout.addWidget(QLabel('Api Key', self))
-        layout.addWidget(self.api)
-        layout.addWidget(QLabel('Select Config', self))
-        layout.addWidget(self.configList)
-        bEdit = QPushButton('Edit', self)
-        bEdit.clicked.connect(lambda: self.editConfig(
-            self.configList.currentText()))
-        bLoad = QPushButton('Load', self)
-        bLoad.clicked.connect(self.loadConfig)
-        bBox = QHBoxLayout()
-        bBox.addWidget(bEdit)
-        bBox.addStretch()
-        bBox.addWidget(bLoad)
-        layout.addLayout(bBox)
-        self.setMinimumWidth(300)
         self.show()
         conf = self.config['DEFAULT']['config']
-        if self.configList.findText(conf, Qt.MatchExactly) != -1:
-            self.configList.setCurrentIndex(
-                self.configList.findText(conf, Qt.MatchExactly))
+        if self.Ui.comboBoxConfig.findText(conf, Qt.MatchExactly) != -1:
+            self.Ui.comboBoxConfig.setCurrentIndex(
+                self.Ui.comboBoxConfig.findText(conf, Qt.MatchExactly))
             self.loadConfig()
         else:
-            self.configList.setCurrentIndex(0)
+            self.Ui.comboBoxConfig.setCurrentIndex(0)
 
     def refresh(self, conf=''):
-        self.configList.clear()
-        [self.configList.addItem(conf) for conf in listdir()
-         if conf.endswith('.json')]
-        self.configList.addItem('New config')
+        self.Ui.comboBoxConfig.clear()
+        for file in listdir():
+            if file.endswith('.json'):
+                self.Ui.comboBoxConfig.addItem(file)
+        self.Ui.comboBoxConfig.addItem('New config')
         if conf:
-            if self.configList.findText(conf, Qt.MatchExactly) != -1:
-                self.configList.setCurrentIndex(
-                    self.configList.findText(conf, Qt.MatchExactly))
+            if self.Ui.comboBoxConfig.findText(conf, Qt.MatchExactly) != -1:
+                self.Ui.comboBoxConfig.setCurrentIndex(
+                    self.Ui.comboBoxConfig.findText(conf, Qt.MatchExactly))
             else:
-                self.configList.setCurrentIndex(0)
+                self.Ui.comboBoxConfig.setCurrentIndex(0)
 
     def editConfig(self, name):
         self.setEnabled(False)
@@ -70,7 +59,7 @@ class ChooseConfig(QDialog):
             with open(name) as f:
                 config = load(f)
         else:
-            config = {'Settings': {}, 'Mods': {}, 'LoadOrder': {}}
+            config = {'Settings': {}, 'Mods': {}, 'Load': {}}
         game = config['Settings'].get('game', '')
         mods = config['Settings'].get('mods', '')
         data = config['Settings'].get('data', '')
@@ -84,11 +73,12 @@ class ChooseConfig(QDialog):
             name, game, mods, data, plugins, prefix = self.dialog.getValues()
             if not name.endswith('.json'):
                 name += '.json'
-            if self.configList.currentText() != name and name in listdir():
+            if (self.Ui.comboBoxConfig.currentText() != name and name in
+                    listdir()):
                 QMessageBox.warning(self, 'File already exists',
                                     'Mod config with that name already '
                                     'exists.', QMessageBox.Ok)
-                name = self.configList.currentText()
+                name = self.Ui.comboBoxConfig.currentText()
                 if not name.endswith('.json'):
                     name += '.json'
             config['Settings'] = {'data': path.realpath(data), 'game': game,
@@ -96,7 +86,7 @@ class ChooseConfig(QDialog):
                                   'plugins': path.realpath(plugins),
                                   'pluginpref': prefix}
             config.setdefault('Mods', {})
-            config.setdefault('LoadOrder', {})
+            config.setdefault('Load', {})
             with open(name, 'w') as f:
                 dump(config, f)
         self.refresh(conf=name)
@@ -104,15 +94,15 @@ class ChooseConfig(QDialog):
 
     def loadConfig(self):
         self.setEnabled(False)
-        confName = self.configList.currentText()
+        confName = self.Ui.comboBoxConfig.currentText()
         if confName == 'New config' or confName not in listdir():
             self.editConfig(confName)
             return
         self.config['DEFAULT']['config'] = confName
-        self.config['DEFAULT']['api'] = self.api.text()
+        self.config['DEFAULT']['api'] = self.Ui.lineEditApi.text()
         with open('placer.ini', 'w') as f:
             self.config.write(f)
-        ModPlacer(confName, self.api.text(), self)
+        ModPlacer(confName, self.Ui.lineEditApi.text(), self)
         self.hide()
         self.setEnabled(True)
 
@@ -120,7 +110,7 @@ class ChooseConfig(QDialog):
 class EditDialog(QDialog):
     def __init__(self, editBoxes, parent):
         super().__init__(parent)
-        self.setWindowTitle('Edit Info')
+        self.setWindowTitle('Edit - Mod Placer')
         layout = QVBoxLayout(self)
         for box in editBoxes:
             layout.addWidget(QLabel(box, self))
@@ -137,7 +127,7 @@ class EditDialog(QDialog):
         return [box.text() for box in self.findChildren(QLineEdit)]
 
 
-class ModPlacer(QWidget):
+class ModPlacer(QMainWindow):
     def __init__(self, conf, api, parent):
         super().__init__()
         self.configName = conf
@@ -154,81 +144,53 @@ class ModPlacer(QWidget):
         self.plugins = self.config['Settings'].get('plugins', '')
         self.pPrefix = self.config['Settings'].get('pluginpref', '')
         self.config.setdefault('Mods', {})
-        self.config.setdefault('LoadOrder', {})
-        self.initUI()
-
-    def initUI(self):
-        self.setWindowTitle('Mod Placer - ' + self.configName[:-5])
-        modBox = QVBoxLayout()
-        self.modList = QListWidget(self)
-        self.modList.itemDoubleClicked.connect(lambda: self.changeModInfo(
-            self.modList.currentItem()))
-        self.modList.setDragDropMode(QAbstractItemView.InternalMove)
-        self.modList.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        modBox.addWidget(QLabel('Mods', self))
-        modBox.addWidget(self.modList)
-        loadBox = QVBoxLayout()
-        self.loadList = QListWidget(self)
-        self.loadList.setDragDropMode(QAbstractItemView.InternalMove)
-        self.loadList.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        loadBox.addWidget(QLabel('Load Order', self))
-        loadBox.addWidget(self.loadList)
-        bOptions = QPushButton('Options')
-        bOptions.clicked.connect(lambda: self.parent.refresh(self.configName))
-        bOptions.clicked.connect(self.parent.show)
-        bOptions.clicked.connect(self.close)
-        bUpdates = QPushButton('Check for updates')
-        bUpdates.clicked.connect(self.checkUpdates)
-        bRefresh = QPushButton('Refresh')
-        bRefresh.clicked.connect(lambda: self.refreshMods())
-        self.bSave = QPushButton('Save')
-        self.bSave.clicked.connect(self.selectSave)
-        topBox = QHBoxLayout()
-        topBox.addLayout(modBox)
-        topBox.addLayout(loadBox)
-        botBox = QHBoxLayout()
-        botBox.addWidget(bUpdates)
-        botBox.addWidget(bOptions)
-        botBox.addStretch()
-        botBox.addWidget(bRefresh)
-        botBox.addWidget(self.bSave)
-        layout = QVBoxLayout(self)
-        layout.addLayout(topBox)
-        layout.addLayout(botBox)
+        self.config.setdefault('Load', {})
+        self.Ui = Ui_MainWindow()
+        self.Ui.setupUi(self)
+        self.setWindowTitle(self.configName[:-5] + ' - Mod Placer')
+        self.Ui.listWidgetMod.itemDoubleClicked.connect(self.changeModInfo)
+        self.Ui.pushButtonOptions.clicked.connect(
+            lambda: self.parent.refresh(self.configName))
+        self.Ui.pushButtonOptions.clicked.connect(self.parent.show)
+        self.Ui.pushButtonOptions.clicked.connect(self.close)
+        self.Ui.pushButtonUpdate.clicked.connect(self.checkUpdates)
+        self.Ui.actionRefresh.triggered.connect(self.refreshMods)
+        self.Ui.pushButtonSave.clicked.connect(self.selectSave)
         if not self.api:
-            bUpdates.setEnabled(False)
+            self.Ui.pushButtonUpdate.setEnabled(False)
         if not path.isdir(self.data):
             QMessageBox.critical(self, 'Error', 'Data folder not found.'
                                  f' ({self.data})', QMessageBox.Ok)
-            self.bSave.setEnabled(False)
+            self.Ui.pushButtonSave.setEnabled(False)
         if self.plugins != '':
             if not path.isdir(path.dirname(self.plugins)):
                 QMessageBox.critical(self, 'Error', 'Plugins folder not found.'
-                                    f' ({path.dirname(self.plugins)})',
-                                    QMessageBox.Ok)
+                                     f' ({path.dirname(self.plugins)})',
+                                     QMessageBox.Ok)
         if not path.isdir(self.mods):
-            mkdir(self.mods)
-        self.resize(850, 700)
+            makedirs(self.mods)
         self.refreshMods(save=False)
         self.show()
 
-    def refreshMods(self, save=True):
+    def refreshMods(self, *, save=True):
         if path.isdir(self.data):
-            self.bSave.setEnabled(True)
+            self.Ui.pushButtonSave.setEnabled(True)
         else:
-            self.bSave.setEnabled(False)
+            self.Ui.pushButtonSave.setEnabled(False)
         if save:
             self.saveConfig()
-        self.modList.clear()
-        [self.addModItem(*self.config['Mods'][mod]) for mod
-         in self.config['Mods']]
-        [self.addModItem(mod) for mod in listdir(self.mods)]
-        self.loadList.clear()
-        [self.addLoadItem(*self.config['LoadOrder'][esp]) for esp
-         in self.config['LoadOrder']]
+        self.Ui.listWidgetMod.clear()
+        for mod in self.config['Mods']:
+            self.addModItem(*self.config['Mods'][mod])
+        for mod in listdir(self.mods):
+            self.addModItem(mod)
+        self.Ui.listWidgetLoad.clear()
+        for plugin in self.config['Load']:
+            self.addLoadItem(*self.config['Load'][plugin])
         if path.isdir(self.data):
-            [self.addLoadItem(esp) for esp in listdir(self.data)
-             if esp.endswith(('.esm', '.esp', '.esl'))]
+            for plugin in listdir(self.data):
+                if plugin.endswith(('.esm', '.esp', '.esl')):
+                    self.addLoadItem(plugin)
 
     def changeModInfo(self, item):
         self.setEnabled(False)
@@ -254,28 +216,27 @@ class ModPlacer(QWidget):
 
     def addModItem(self, mod, check=Qt.Unchecked, modID='0', version='1.0'):
         if path.isdir(path.join(self.mods, mod)):
-            if not self.modList.findItems(mod, Qt.MatchExactly):
+            if not self.Ui.listWidgetMod.findItems(mod, Qt.MatchExactly):
                 modItem = QListWidgetItem(mod)
                 modItem.setData(Qt.CheckStateRole, check)
                 self.updateData(modItem, modID, version)
-                self.modList.addItem(modItem)
+                self.Ui.listWidgetMod.addItem(modItem)
 
     def addLoadItem(self, esp, check=Qt.Unchecked):
         if path.islink(path.join(self.data, esp)):
-            if not self.loadList.findItems(esp, Qt.MatchExactly):
+            if not self.Ui.listWidgetLoad.findItems(esp, Qt.MatchExactly):
                 loadItem = QListWidgetItem(esp)
                 loadItem.setData(Qt.CheckStateRole, check)
-                self.loadList.addItem(loadItem)
+                self.Ui.listWidgetLoad.addItem(loadItem)
 
     def selectSave(self):
         self.refreshMods()
         self.copyTree(self.data, path.join(self.mods, 'Data Backup'), rm=True)
-        mkdir(self.data)
-        for index in range(self.modList.count()):
-            if self.modList.item(index).checkState():
-                self.copyTree(path.join(self.mods,
-                                        self.modList.item(index).text()),
-                              self.data)
+        makedirs(self.data)
+        for index in range(self.Ui.listWidgetMod.count()):
+            if self.Ui.listWidgetMod.item(index).checkState():
+                folder = self.Ui.listWidgetMod.item(index).text()
+                self.copyTree(path.join(self.mods, folder), self.data)
         self.refreshMods()
 
     def copyTree(self, source, destination, rm=False):
@@ -284,7 +245,7 @@ class ModPlacer(QWidget):
             dst = path.join(destination, item)
             if path.isdir(src):
                 if not path.isdir(dst) and not rm:
-                    mkdir(dst)
+                    makedirs(dst)
                 self.copyTree(src, dst, rm)
             else:
                 if path.islink(dst):
@@ -300,7 +261,7 @@ class ModPlacer(QWidget):
             rmdir(source)
 
     def saveConfig(self):
-        if self.loadList.count() + 5 < len(self.config['LoadOrder']):
+        if self.Ui.listWidgetLoad.count() + 5 < len(self.config['Load']):
             warn = QMessageBox.warning(self, 'Warning',
                                        'Load order count varies greatly from '
                                        'config count.\n'
@@ -308,41 +269,41 @@ class ModPlacer(QWidget):
                                        QMessageBox.Yes | QMessageBox.No)
             if warn == QMessageBox.Yes:
                 return
-        self.config['Mods'] = {x: (self.modList.item(x).text(),
-                                   self.modList.item(x).checkState()) +
-                               self.modList.item(x).data(Qt.UserRole)
-                               for x in range(self.modList.count())}
-        self.config['LoadOrder'] = {x: (self.loadList.item(x).text(),
-                                        self.loadList.item(x).checkState())
-                                    for x in range(self.loadList.count())}
+        self.config['Mods'] = {}
+        for index in range(self.Ui.listWidgetMod.count()):
+            mod = self.Ui.listWidgetMod.item(index)
+            self.config['Mods'][index] = (mod.text(), mod.checkState()) + \
+                mod.data(Qt.UserRole)
+        self.config['Load'] = {}
         newTime = 978300000
-        for x in listdir(self.data):
-            if x.endswith('.bsa'):
+        for file in listdir(self.data):
+            if file.endswith('.bsa'):
                 try:
-                    utime(path.join(self.data, x), (newTime, newTime))
+                    utime(path.join(self.data, file), (newTime, newTime))
                 except FileNotFoundError:
                     pass
-        for x in range(self.loadList.count()):
-            pluginFile = self.loadList.item(x).text()
+        for index in range(self.Ui.listWidgetLoad.count()):
+            plugin = self.Ui.listWidgetLoad.item(index)
+            self.config['Load'][index] = [plugin.text(), plugin.checkState()]
             try:
-                utime(path.join(self.data, pluginFile), (newTime, newTime))
+                utime(path.join(self.data, plugin.text()), (newTime, newTime))
             except FileNotFoundError:
                 pass
             newTime += 1
         if path.isdir(path.dirname(self.plugins)):
             with open(path.join(self.plugins), 'w') as f:
-                for index in range(self.loadList.count()):
-                    if self.loadList.item(index).checkState():
-                        f.write(f'{self.pPrefix}'
-                                f'{self.loadList.item(index).text()}\n')
+                for index in range(self.Ui.listWidgetLoad.count()):
+                    plugin = self.Ui.listWidgetLoad.item(index)
+                    if plugin.checkState():
+                        f.write(f'{self.pPrefix}{plugin.text()}\n')
         with open(self.configName, 'w') as f:
             dump(self.config, f)
 
     def checkUpdates(self):
         self.setEnabled(False)
         updates = ''
-        for index in range(self.modList.count()):
-            mod = self.modList.item(index)
+        for index in range(self.Ui.listWidgetMod.count()):
+            mod = self.Ui.listWidgetMod.item(index)
             modData = mod.data(Qt.UserRole)
             if modData[0] != '0':
                 modID = modData[0].split('/')
@@ -355,12 +316,12 @@ class ModPlacer(QWidget):
                                          headers=self.headers)) as page:
                         version = load(page)['version']
                     if modData[1] != version:
-                        updates += '<br><a href=https://www.nexusmods.com/' \
+                        updates += '<a href=https://www.nexusmods.com/' \
                             f'{site}?tab=files>{mod.text()}: {modData[1]} ' \
-                            f'--> {version}</a>'
+                            f'--> {version}</a><br>'
                 except Exception:
-                    updates += '<br><p>Failed opening nexus site for: ' \
-                        f'{mod.text()}</p>'
+                    updates += '<p>Failed opening nexus site for: ' \
+                        f'{mod.text()}</p><br>'
         if not updates:
             updates = 'No mod updates found.'
         QMessageBox.information(self, 'Mod updates', updates, QMessageBox.Ok)
