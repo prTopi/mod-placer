@@ -64,20 +64,6 @@
     <item>
      <layout class="QHBoxLayout" name="layoutButtons">
       <item>
-       <widget class="QPushButton" name="pushButtonUpdate">
-        <property name="text">
-         <string>Check for updates</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButtonOptions">
-        <property name="text">
-         <string>Options</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <spacer name="spacerButtons">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -114,23 +100,54 @@
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="actionInstallMod"/>
-    <addaction name="separator"/>
     <addaction name="actionRefresh"/>
+    <addaction name="separator"/>
+    <addaction name="actionCheckForUpdates"/>
+    <addaction name="actionOptions"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
-  <action name="actionInstallMod">
-   <property name="text">
-    <string>Install mod...</string>
-   </property>
-  </action>
   <action name="actionRefresh">
    <property name="icon">
-    <iconset theme="view-refresh"/>
+    <iconset theme="view-refresh">
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Refresh</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
+   </property>
+  </action>
+  <action name="actionCheckForUpdates">
+   <property name="icon">
+    <iconset theme="view-refresh">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>Check for Updates</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F5</string>
+   </property>
+  </action>
+  <action name="actionOptions">
+   <property name="text">
+    <string>Configure...</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="icon">
+    <iconset theme="application-exit">
+     <normaloff>.</normaloff>.</iconset>
+   </property>
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
  </widget>
