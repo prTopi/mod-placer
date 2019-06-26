@@ -24,7 +24,7 @@ class OptionsDialog(QDialog):
     def refresh(self, config):
         self.Ui.comboBoxConfig.clear()
         for file in listdir():
-            if file.endswith('.json'):
+            if file.endswith(".json"):
                 self.Ui.comboBoxConfig.addItem(file[:-5])
         if config:
             if self.Ui.comboBoxConfig.findText(config, Qt.MatchExactly) != -1:
@@ -35,33 +35,33 @@ class OptionsDialog(QDialog):
 
     def editConfig(self, name):
         self.setEnabled(False)
-        if name + '.json' in listdir():
-            with open(name + '.json') as f:
+        if name + ".json" in listdir():
+            with open(name + ".json") as f:
                 config = load(f)
         else:
-            config = {'Settings': {}, 'Mods': {}, 'Load': {}}
-        game = config['Settings'].get('game', '')
-        mods = config['Settings'].get('mods', '')
-        data = config['Settings'].get('data', '')
-        plugins = config['Settings'].get('plugins', '')
-        prefix = config['Settings'].get('pluginpref', '')
-        dialog = EditDialog({'File Name': name, 'Nexus Game': game,
-                             'Mods Directory': mods, 'Data Path': data,
-                             'Plugins.txt File': plugins,
-                             'Plugins.txt Line Prefix': prefix}, self)
+            config = {"Settings": {}, "Mods": {}, "Load": {}}
+        game = config["Settings"].get("game", "")
+        mods = config["Settings"].get("mods", "")
+        data = config["Settings"].get("data", "")
+        plugins = config["Settings"].get("plugins", "")
+        prefix = config["Settings"].get("pluginpref", "")
+        dialog = EditDialog({"File Name": name, "Nexus Game": game,
+                             "Mods Directory": mods, "Data Path": data,
+                             "Plugins.txt File": plugins,
+                             "Plugins.txt Line Prefix": prefix}, self)
         if dialog.exec_():
             name, game, mods, data, plugins, prefix = dialog.getValues()
             if (self.Ui.comboBoxConfig.currentText() != name and
-                    name + '.json' in listdir()):
-                QMessageBox.warning(self, 'File already exists',
-                                    'Mod config with that name already '
-                                    'exists.', QMessageBox.Ok)
+                    name + ".json" in listdir()):
+                QMessageBox.warning(self, "File already exists",
+                                    "Mod config with that name already "
+                                    "exists.", QMessageBox.Ok)
                 name = self.Ui.comboBoxConfig.currentText()
-            config['Settings'] = {'data': data, 'game': game, 'mods': mods,
-                                  'plugins': plugins, 'pluginpref': prefix}
-            config.setdefault('Mods', {})
-            config.setdefault('Load', {})
-            with open(name + '.json', 'w') as f:
+            config["Settings"] = {"data": data, "game": game, "mods": mods,
+                                  "plugins": plugins, "pluginpref": prefix}
+            config.setdefault("Mods", {})
+            config.setdefault("Load", {})
+            with open(name + ".json", "w") as f:
                 dump(config, f)
         self.refresh(name)
         self.setEnabled(True)

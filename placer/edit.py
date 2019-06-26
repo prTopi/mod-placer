@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt
 class EditDialog(QDialog):
     def __init__(self, editBoxes, parent):
         super().__init__(parent)
-        self.setWindowTitle('Edit - Mod Placer')
+        self.setWindowTitle("Edit - Mod Placer")
         layout = QVBoxLayout(self)
         for box in editBoxes:
             layout.addWidget(QLabel(box, self))
