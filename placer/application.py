@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
-from sys import argv, exit
 from platform import system, release, python_version
-from os import (listdir, path, rename, symlink, makedirs, rmdir,
-                unlink, utime)
-from shutil import copy2
+from os import listdir, path, rename, utime
 from json import load, dump
 from urllib.request import urlopen, Request
 from configparser import ConfigParser
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QListWidgetItem,
-                             QMessageBox)
-from PyQt5.QtCore import Qt, QEvent, QThread, pyqtSlot
+from PyQt5.QtWidgets import QMainWindow, QListWidgetItem, QMessageBox
+from PyQt5.QtCore import Qt, QEvent, pyqtSlot
 from placer.ui.mainwindow import Ui_MainWindow
 from placer.options import OptionsDialog
 from placer.edit import EditDialog
@@ -30,12 +26,12 @@ class ModPlacer(QMainWindow):
         self._commiter = None
         self.Ui = Ui_MainWindow()
         self.Ui.setupUi(self)
-        self.Ui.modListWidget.itemDoubleClicked.connect(self.changeModInfo)
-        self.Ui.commitPushButton.clicked.connect(self.selectCommit)
         self.Ui.actionRefresh.triggered.connect(self.refreshMods)
         self.Ui.actionCheckForUpdates.triggered.connect(self.checkUpdates)
         self.Ui.actionOptions.triggered.connect(self.loadConfig)
         self.Ui.actionQuit.triggered.connect(self.close)
+        self.Ui.modListWidget.itemDoubleClicked.connect(self.changeModInfo)
+        self.Ui.commitPushButton.clicked.connect(self.selectCommit)
         self.show()
         self.loadConfig(config=self._config["Placer"]["config"])
 
@@ -109,7 +105,6 @@ class ModPlacer(QMainWindow):
                     self.addLoadItem(plugin)
 
     def changeModInfo(self, item):
-        self.setEnabled(False)
         itemData = item.data(Qt.UserRole)
         self.dialog = EditDialog({"Name": item.text(), "Mod ID": itemData[0],
                                   "Version": itemData[1]}, self)
@@ -123,24 +118,28 @@ class ModPlacer(QMainWindow):
                     rename(path.join(self._mods, item.text()),
                            path.join(self._mods, name))
                     item.setText(name)
-            item.setToolTip("ID: {}\nVersion: {}".format(modID, version))
-            item.setData(Qt.UserRole, (modID, version))
-        self.setEnabled(True)
+            item.setData(Qt.UserRole + 1, modID)
+            item.setData(Qt.UserRole + 2, version)
+            item.setToolTip(f"ID: {modID}\nVersion: {version}")
 
     def addModItem(self, mod, check=Qt.Unchecked, modID="", version="1.0"):
         if path.isdir(path.join(self._mods, mod)):
             if not self.Ui.modListWidget.findItems(mod, Qt.MatchExactly):
                 item = QListWidgetItem(mod)
                 item.setData(Qt.CheckStateRole, check)
-                item.setToolTip("ID: {}\nVersion: {}".format(modID, version))
-                item.setData(Qt.UserRole, (modID, version))
+                item.setData(Qt.UserRole, mod)
+                item.setData(Qt.UserRole + 1, modID)
+                item.setData(Qt.UserRole + 2, version)
+                item.setToolTip(f"ID: {modID}\nVersion: {version}")
                 self.Ui.modListWidget.addItem(item)
 
     def addLoadItem(self, esp, check=Qt.Unchecked):
         if path.islink(path.join(self._data, esp)):
-            if not self.Ui.loadListWidget.findItems(esp, Qt.MatchExactly):
+            if not self.Ui.loadListWidget.findItems(esp, Qt.MatchEndsWith):
+                index = self.Ui.loadListWidget.count()
                 loadItem = QListWidgetItem(esp)
                 loadItem.setData(Qt.CheckStateRole, check)
+                loadItem.setData(Qt.UserRole, esp)
                 self.Ui.loadListWidget.addItem(loadItem)
 
     @pyqtSlot()
@@ -152,7 +151,8 @@ class ModPlacer(QMainWindow):
         mods = []
         for index in range(self.Ui.modListWidget.count()):
             if self.Ui.modListWidget.item(index).checkState():
-                mods.append(self.Ui.modListWidget.item(index).text())
+                name = self.Ui.modListWidget.item(index).data(Qt.UserRole)
+                mods.append(name)
         self._commiter = CommitThread(self._data, self._mods, mods, self)
         self._commiter.finished.connect(self.finishCommit)
         self._commiter.start()
@@ -175,8 +175,10 @@ class ModPlacer(QMainWindow):
         self._modConfig["Mods"] = {}
         for index in range(self.Ui.modListWidget.count()):
             mod = self.Ui.modListWidget.item(index)
-            self._modConfig["Mods"][index] = (mod.text(), mod.checkState()) + \
-                mod.data(Qt.UserRole)
+            self._modConfig["Mods"][index] = (mod.data(Qt.UserRole),
+                                              mod.checkState(),
+                                              mod.data(Qt.UserRole + 1),
+                                              mod.data(Qt.UserRole + 2))
         self._modConfig["Load"] = {}
         newTime = 978300000
         for file in listdir(self._data):
@@ -187,10 +189,11 @@ class ModPlacer(QMainWindow):
                     pass
         for index in range(self.Ui.loadListWidget.count()):
             plugin = self.Ui.loadListWidget.item(index)
-            self._modConfig["Load"][index] = [plugin.text(),
+            self._modConfig["Load"][index] = [plugin.data(Qt.UserRole),
                                               plugin.checkState()]
             try:
-                utime(path.join(self._data, plugin.text()), (newTime, newTime))
+                utime(path.join(self._data, plugin.data(Qt.UserRole)),
+                      (newTime, newTime))
             except FileNotFoundError:
                 pass
             newTime += 1
@@ -199,39 +202,39 @@ class ModPlacer(QMainWindow):
                 for index in range(self.Ui.loadListWidget.count()):
                     plugin = self.Ui.loadListWidget.item(index)
                     if plugin.checkState():
-                        f.write(f"{self._pluginPrefix}{plugin.text()}\n")
+                        f.write(f"{self._pluginPrefix}"
+                                f"{plugin.data(Qt.UserRole)}\n")
         with open(self._config["Placer"]["config"], "w") as f:
             dump(self._modConfig, f)
         with open("placer.ini", "w") as f:
             self._config.write(f)
 
     def checkUpdates(self):
-        self.setEnabled(False)
         updates = ""
         for index in range(self.Ui.modListWidget.count()):
             mod = self.Ui.modListWidget.item(index)
-            modData = mod.data(Qt.UserRole)
-            if modData[0] != "0":
-                modID = modData[0].split("/")
+            modNexus = mod.data(Qt.UserRole + 1)
+            modVersion = mod.data(Qt.UserRole + 2)
+            if modNexus != "":
+                modID = modNexus.split("/")
                 if len(modID) == 1:
                     modID.append(self._game)
-                site = "{}/mods/{}".format(modID[1], modID[0])
+                site = f"{modID[1]}/mods/{modID[0]}"
                 try:
                     req = Request("https://api.nexusmods.com/v1/games/"
                                   f"{site}.json", headers=self._headers)
                     with urlopen(req) as page:
-                        version = load(page)["version"]
-                    if modData[1] != version:
+                        newVersion = load(page)["version"]
+                    if modVersion != newVersion:
                         updates += "<a href=https://www.nexusmods.com/" \
-                            f"{site}?tab=files>{mod.text()}: {modData[1]} " \
-                            f"--> {version}</a><br>"
+                            f"{site}?tab=files>{mod.text()}: {modVersion} " \
+                            f"--> {newVersion}</a><br>"
                 except Exception:
                     updates += "<p>Failed opening nexus site for: " \
                         f"{mod.text()}</p><br>"
         if not updates:
             updates = "No mod updates found."
         QMessageBox.information(self, "Mod updates", updates, QMessageBox.Ok)
-        self.setEnabled(True)
 
     def closeEvent(self, event):
         if (self._config["Placer"].getboolean("saveOnExit") and

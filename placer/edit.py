@@ -34,7 +34,7 @@ class ConfigEditDialog(QDialog):
 
     def browseFile(self, lineEdit):
         filePath = QFileDialog.getOpenFileName(self, 'Select File',
-                                                   lineEdit.text())
+                                               lineEdit.text())
         if filePath[0]:
             lineEdit.setText(filePath[0])
 

@@ -1,6 +1,6 @@
 from os import listdir, unlink
 from json import load, dump
-from PyQt5.QtWidgets import QDialog, QMessageBox
+from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import Qt
 from placer.ui.options import Ui_ConfigDialog
 from placer.edit import ConfigEditDialog
