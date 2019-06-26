@@ -25,63 +25,96 @@
   <property name="windowTitle">
    <string>Options - Mod Placer</string>
   </property>
+  <property name="modal">
+   <bool>true</bool>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QLabel" name="labelApi">
-     <property name="text">
-      <string>Api Key</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLineEdit" name="lineEditApi"/>
-   </item>
-   <item>
-    <widget class="QLabel" name="labelConfig">
-     <property name="text">
-      <string>Config</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayoutButtons">
-     <item>
-      <widget class="QComboBox" name="comboBoxConfig"/>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButtonEdit">
-       <property name="maximumSize">
-        <size>
-         <width>50</width>
-         <height>16777215</height>
-        </size>
-       </property>
+    <layout class="QFormLayout" name="formLayout">
+     <item row="2" column="0">
+      <widget class="QLabel" name="exitLabel">
        <property name="text">
-        <string>Edit</string>
+        <string>Save on exit</string>
+       </property>
+       <property name="buddy">
+        <cstring>exitCheckBox</cstring>
        </property>
       </widget>
      </item>
-     <item>
-      <widget class="QToolButton" name="toolButtonAdd">
+     <item row="2" column="1">
+      <widget class="QCheckBox" name="exitCheckBox"/>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="focusLabel">
        <property name="text">
-        <string>+</string>
+        <string>Refresh on focus</string>
+       </property>
+       <property name="buddy">
+        <cstring>focusCheckBox</cstring>
        </property>
       </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="focusCheckBox"/>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="apiLabel">
+       <property name="text">
+        <string>Api Key</string>
+       </property>
+       <property name="buddy">
+        <cstring>apiLineEdit</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="apiLineEdit"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="configLabel">
+       <property name="text">
+        <string>Config</string>
+       </property>
+       <property name="buddy">
+        <cstring>configComboBox</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <layout class="QHBoxLayout" name="buttonsHorizontalLayout">
+       <item>
+        <widget class="QComboBox" name="configComboBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="editPushButton">
+         <property name="maximumSize">
+          <size>
+           <width>50</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Edit</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QToolButton" name="addToolButton">
+         <property name="text">
+          <string>+</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -93,5 +126,38 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>ConfigDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>199</x>
+     <y>169</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>94</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>ConfigDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>199</x>
+     <y>169</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>94</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

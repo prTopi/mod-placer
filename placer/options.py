@@ -1,70 +1,69 @@
-from os import listdir
+from os import listdir, unlink
 from json import load, dump
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.QtCore import Qt
 from placer.ui.options import Ui_ConfigDialog
-from placer.edit import EditDialog
+from placer.edit import ConfigEditDialog
 
 
 class OptionsDialog(QDialog):
-    def __init__(self, config, api, parent):
+    def __init__(self, config, parent):
         super().__init__(parent)
+        self._config = config
         self.Ui = Ui_ConfigDialog()
         self.Ui.setupUi(self)
-        self.Ui.lineEditApi.setText(api)
-        self.Ui.comboBoxConfig.currentTextChanged.connect(self.update)
-        self.Ui.pushButtonEdit.clicked.connect(lambda: self.editConfig(
-            self.Ui.comboBoxConfig.currentText()))
-        self.Ui.toolButtonAdd.clicked.connect(lambda: self.editConfig(''))
-        self.Ui.buttonBox.accepted.connect(self.accept)
-        self.Ui.buttonBox.rejected.connect(self.reject)
-        self.refresh(config)
+        self.Ui.apiLineEdit.setText(self._config["Nexus"]["api"])
+        self.Ui.configComboBox.currentTextChanged.connect(self.update)
+        self.Ui.editPushButton.clicked.connect(lambda: self.editConfig(
+            name=self.Ui.configComboBox.currentText()))
+        self.Ui.addToolButton.clicked.connect(self.editConfig)
+        self.Ui.exitCheckBox.setChecked(
+            self._config["Placer"].getboolean("saveOnExit"))
+        self.Ui.focusCheckBox.setChecked(
+            self._config["Placer"].getboolean("refreshOnFocus"))
+        self.refresh(self._config["Placer"]["config"])
         self.show()
 
     def refresh(self, config):
-        self.Ui.comboBoxConfig.clear()
+        self.Ui.configComboBox.clear()
         for file in listdir():
             if file.endswith(".json"):
-                self.Ui.comboBoxConfig.addItem(file[:-5])
+                self.Ui.configComboBox.addItem(file)
         if config:
-            if self.Ui.comboBoxConfig.findText(config, Qt.MatchExactly) != -1:
-                self.Ui.comboBoxConfig.setCurrentIndex(
-                    self.Ui.comboBoxConfig.findText(config, Qt.MatchExactly))
+            if self.Ui.configComboBox.findText(config, Qt.MatchExactly) != -1:
+                self.Ui.configComboBox.setCurrentIndex(
+                    self.Ui.configComboBox.findText(config, Qt.MatchExactly))
             else:
-                self.Ui.comboBoxConfig.setCurrentIndex(0)
+                self.Ui.configComboBox.setCurrentIndex(0)
 
-    def editConfig(self, name):
-        self.setEnabled(False)
-        if name + ".json" in listdir():
-            with open(name + ".json") as f:
+    def editConfig(self, *, name=""):
+        if name in listdir():
+            with open(name) as f:
                 config = load(f)
         else:
-            config = {"Settings": {}, "Mods": {}, "Load": {}}
-        game = config["Settings"].get("game", "")
-        mods = config["Settings"].get("mods", "")
-        data = config["Settings"].get("data", "")
-        plugins = config["Settings"].get("plugins", "")
-        prefix = config["Settings"].get("pluginpref", "")
-        dialog = EditDialog({"File Name": name, "Nexus Game": game,
-                             "Mods Directory": mods, "Data Path": data,
-                             "Plugins.txt File": plugins,
-                             "Plugins.txt Line Prefix": prefix}, self)
+            config = {}
+        if name.endswith(".json"):
+            name = name[:-5]
+        config.setdefault("Settings", {})
+        config.setdefault("Mods", {})
+        config.setdefault("Load", {})
+        config["Settings"].setdefault("game", "")
+        config["Settings"].setdefault("data", "")
+        config["Settings"].setdefault("mods", "")
+        config["Settings"].setdefault("plugins", "")
+        config["Settings"].setdefault("pluginpref", "")
+        dialog = ConfigEditDialog(name, config, self)
         if dialog.exec_():
-            name, game, mods, data, plugins, prefix = dialog.getValues()
-            if (self.Ui.comboBoxConfig.currentText() != name and
-                    name + ".json" in listdir()):
-                QMessageBox.warning(self, "File already exists",
-                                    "Mod config with that name already "
-                                    "exists.", QMessageBox.Ok)
-                name = self.Ui.comboBoxConfig.currentText()
-            config["Settings"] = {"data": data, "game": game, "mods": mods,
-                                  "plugins": plugins, "pluginpref": prefix}
-            config.setdefault("Mods", {})
-            config.setdefault("Load", {})
-            with open(name + ".json", "w") as f:
+            oldName = name + ".json"
+            name, config = dialog.getConfig()
+            if not name.endswith(".json"):
+                name = name + ".json"
+            with open(name, "w") as f:
                 dump(config, f)
+            if oldName != name:
+                if oldName in listdir():
+                    unlink(oldName)
         self.refresh(name)
-        self.setEnabled(True)
 
     def update(self, text):
         if text:
@@ -72,5 +71,11 @@ class OptionsDialog(QDialog):
         else:
             self.Ui.buttonBox.setEnabled(False)
 
-    def getValues(self):
-        return self.Ui.lineEditApi.text(), self.Ui.comboBoxConfig.currentText()
+    def getConfig(self):
+        self._config["Placer"]["config"] = self.Ui.configComboBox.currentText()
+        self._config["Placer"]["saveOnExit"] = str(bool(
+            self.Ui.exitCheckBox.isChecked()))
+        self._config["Placer"]["refreshOnFocus"] = str(bool(
+            self.Ui.focusCheckBox.isChecked()))
+        self._config["Nexus"]["api"] = self.Ui.apiLineEdit.text()
+        return self._config

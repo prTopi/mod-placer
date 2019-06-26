@@ -16,18 +16,18 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <layout class="QHBoxLayout" name="layoutLists">
+     <layout class="QHBoxLayout" name="listsLayout">
       <item>
-       <layout class="QVBoxLayout" name="layoutMods">
+       <layout class="QVBoxLayout" name="modsLayout">
         <item>
-         <widget class="QLabel" name="labelMod">
+         <widget class="QLabel" name="modLabel">
           <property name="text">
            <string>Mods</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QListWidget" name="listWidgetMod">
+         <widget class="QListWidget" name="modListWidget">
           <property name="dragDropMode">
            <enum>QAbstractItemView::InternalMove</enum>
           </property>
@@ -39,16 +39,16 @@
        </layout>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="layoutLoad">
+       <layout class="QVBoxLayout" name="loadLayout">
         <item>
-         <widget class="QLabel" name="labelLoad">
+         <widget class="QLabel" name="loadLabel">
           <property name="text">
            <string>Load Order</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QListWidget" name="listWidgetLoad">
+         <widget class="QListWidget" name="loadListWidget">
           <property name="dragDropMode">
            <enum>QAbstractItemView::InternalMove</enum>
           </property>
@@ -77,9 +77,12 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButtonSave">
+       <widget class="QPushButton" name="commitPushButton">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="text">
-         <string>Save</string>
+         <string>Commit</string>
         </property>
        </widget>
       </item>
@@ -110,6 +113,9 @@
    <addaction name="menuFile"/>
   </widget>
   <action name="actionRefresh">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="view-refresh">
      <normaloff>.</normaloff>.</iconset>
@@ -122,6 +128,9 @@
    </property>
   </action>
   <action name="actionCheckForUpdates">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="view-refresh">
      <normaloff>.</normaloff>.</iconset>
