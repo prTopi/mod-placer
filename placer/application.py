@@ -2,7 +2,6 @@
 from platform import system, release, python_version
 from os import listdir, path, rename, utime
 from json import load, dump
-from urllib.request import urlopen, Request
 from configparser import ConfigParser
 from PyQt5.QtWidgets import QMainWindow, QListWidgetItem, QMessageBox
 from PyQt5.QtCore import Qt, QEvent, pyqtSlot
@@ -10,6 +9,7 @@ from placer.ui.mainwindow import Ui_MainWindow
 from placer.options import OptionsDialog
 from placer.edit import EditDialog
 from placer.commit import CommitThread
+from placer.update import UpdateThread
 
 __version__ = "0.2.7"
 
@@ -105,17 +105,17 @@ class ModPlacer(QMainWindow):
                     self.addLoadItem(plugin)
 
     def changeModInfo(self, item):
-        itemData = item.data(Qt.UserRole)
-        self.dialog = EditDialog({"Name": item.text(), "Mod ID": itemData[0],
-                                  "Version": itemData[1]}, self)
+        self.dialog = EditDialog({"Name": item.data(Qt.UserRole),
+                                  "Mod ID": item.data(Qt.UserRole + 1),
+                                  "Version": item.data(Qt.UserRole + 2)}, self)
         if self.dialog.exec_():
             name, modID, version = self.dialog.getValues()
-            if name != item.text():
+            if name != item.data(Qt.UserRole):
                 if name in listdir(self._mods):
                     QMessageBox.warning(self, "Warning", "Mod with that name "
                                         "already exists.", QMessageBox.Ok)
                 else:
-                    rename(path.join(self._mods, item.text()),
+                    rename(path.join(self._mods, item.data(Qt.UserRole)),
                            path.join(self._mods, name))
                     item.setText(name)
             item.setData(Qt.UserRole + 1, modID)
@@ -136,7 +136,6 @@ class ModPlacer(QMainWindow):
     def addLoadItem(self, esp, check=Qt.Unchecked):
         if path.islink(path.join(self._data, esp)):
             if not self.Ui.loadListWidget.findItems(esp, Qt.MatchEndsWith):
-                index = self.Ui.loadListWidget.count()
                 loadItem = QListWidgetItem(esp)
                 loadItem.setData(Qt.CheckStateRole, check)
                 loadItem.setData(Qt.UserRole, esp)
@@ -210,31 +209,22 @@ class ModPlacer(QMainWindow):
             self._config.write(f)
 
     def checkUpdates(self):
-        updates = ""
+        self.Ui.actionCheckForUpdates.setEnabled(False)
+        mods = []
         for index in range(self.Ui.modListWidget.count()):
             mod = self.Ui.modListWidget.item(index)
-            modNexus = mod.data(Qt.UserRole + 1)
-            modVersion = mod.data(Qt.UserRole + 2)
-            if modNexus != "":
-                modID = modNexus.split("/")
-                if len(modID) == 1:
-                    modID.append(self._game)
-                site = f"{modID[1]}/mods/{modID[0]}"
-                try:
-                    req = Request("https://api.nexusmods.com/v1/games/"
-                                  f"{site}.json", headers=self._headers)
-                    with urlopen(req) as page:
-                        newVersion = load(page)["version"]
-                    if modVersion != newVersion:
-                        updates += "<a href=https://www.nexusmods.com/" \
-                            f"{site}?tab=files>{mod.text()}: {modVersion} " \
-                            f"--> {newVersion}</a><br>"
-                except Exception:
-                    updates += "<p>Failed opening nexus site for: " \
-                        f"{mod.text()}</p><br>"
-        if not updates:
-            updates = "No mod updates found."
-        QMessageBox.information(self, "Mod updates", updates, QMessageBox.Ok)
+            mods.append({"name": mod.data(Qt.UserRole),
+                         "id": mod.data(Qt.UserRole + 1),
+                         "version": mod.data(Qt.UserRole + 2)})
+        self._updater = UpdateThread(mods, self._game, self._headers, self)
+        self._updater.finished.connect(self.finishUpdate)
+        self._updater.start()
+
+    @pyqtSlot()
+    def finishUpdate(self):
+        self.Ui.actionCheckForUpdates.setEnabled(True)
+        QMessageBox.information(self, "Mod updates",
+                                self._updater.getUpdates(), QMessageBox.Ok)
 
     def closeEvent(self, event):
         if (self._config["Placer"].getboolean("saveOnExit") and
