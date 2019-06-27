@@ -217,14 +217,13 @@ class ModPlacer(QMainWindow):
                          "id": mod.data(Qt.UserRole + 1),
                          "version": mod.data(Qt.UserRole + 2)})
         self._updater = UpdateThread(mods, self._game, self._headers, self)
-        self._updater.finished.connect(self.finishUpdate)
+        self._updater.signalFinished.connect(self.finishUpdate)
         self._updater.start()
 
-    @pyqtSlot()
-    def finishUpdate(self):
+    @pyqtSlot(str)
+    def finishUpdate(self, updates):
         self.Ui.actionCheckForUpdates.setEnabled(True)
-        QMessageBox.information(self, "Mod updates",
-                                self._updater.getUpdates(), QMessageBox.Ok)
+        QMessageBox.information(self, "Mod updates", updates, QMessageBox.Ok)
 
     def closeEvent(self, event):
         if (self._config["Placer"].getboolean("saveOnExit") and
