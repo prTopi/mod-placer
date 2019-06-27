@@ -1,20 +1,35 @@
-from os import path, makedirs, listdir, symlink, unlink, rmdir
+from os import path, makedirs, listdir, symlink, unlink, rmdir, utime
 from shutil import copy2
 from PyQt5.QtCore import QThread
 
 
-class CommitThread(QThread):
-    def __init__(self, dataDir, modsDir, mods, parent):
+class SaveThread(QThread):
+    def __init__(self, config, mods, plugins, parent):
         super().__init__(parent)
-        self._dataDir = dataDir
-        self._modsDir = modsDir
+        self._config = config
         self._mods = mods
+        self._plugins = plugins
 
     def run(self):
-        self.copyTree(self._dataDir, path.join(self._modsDir, "Data Backup"),
+        self.copyTree(self._config["data"],
+                      path.join(self._config["mods"], "Data Backup"),
                       rm=False)
         for mod in self._mods:
-            self.copyTree(path.join(self._modsDir, mod), self._dataDir)
+            self.copyTree(path.join(self._config["mods"], mod),
+                          self._config["data"])
+        newTime = 978300000
+        for file in listdir(self._config["data"]):
+            if file.endswith(".bsa"):
+                utime(path.join(self._config["data"], file),
+                      (newTime, newTime))
+        for plugin in self._plugins:
+            utime(path.join(self._config["data"], plugin), (newTime, newTime))
+            newTime += 1
+        if self._config["plugins"]:
+            makedirs(path.dirname(self._config["plugins"]), exist_ok=True)
+            with open(path.join(self._config["plugins"]), "w") as f:
+                for plugin in self._plugins:
+                    f.write(f"{self._config['prefix']}{plugin}\n")
 
     def copyTree(self, srcFolder, dstFolder, rm=None):
         for item in listdir(srcFolder):

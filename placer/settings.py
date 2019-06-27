@@ -2,11 +2,11 @@ from os import listdir, unlink
 from json import load, dump
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import Qt
-from placer.ui.options import Ui_ConfigDialog
-from placer.edit import ConfigEditDialog
+from placer.ui.config import Ui_ConfigDialog
+from placer.edit import EditConfigDialog
 
 
-class OptionsDialog(QDialog):
+class SettingsDialog(QDialog):
     def __init__(self, config, parent):
         super().__init__(parent)
         self._config = config
@@ -21,6 +21,8 @@ class OptionsDialog(QDialog):
             self._config["Placer"].getboolean("saveOnExit"))
         self.Ui.focusCheckBox.setChecked(
             self._config["Placer"].getboolean("refreshOnFocus"))
+        self.Ui.prettyCheckBox.setChecked(
+            self._config["Placer"].getboolean("prettyPrint"))
         self.refresh(self._config["Placer"]["config"])
         self.show()
 
@@ -44,14 +46,13 @@ class OptionsDialog(QDialog):
             config = {}
         if name.endswith(".json"):
             name = name[:-5]
-        config.setdefault("Settings", {})
-        config.setdefault("Mods", {})
-        config.setdefault("Load", {})
-        config["Settings"].setdefault("game", "")
-        config["Settings"].setdefault("data", "")
-        config["Settings"].setdefault("mods", "")
-        config["Settings"].setdefault("plugins", "")
-        config["Settings"].setdefault("pluginpref", "")
+        config.setdefault("game", "")
+        config.setdefault("data", "")
+        config.setdefault("mods", "")
+        config.setdefault("plugins", "")
+        config.setdefault("prefix", "")
+        config.setdefault("ModOrder", {})
+        config.setdefault("LoadOrder", {})
         dialog = ConfigEditDialog(name, config, self)
         if dialog.exec_():
             oldName = name + ".json"
@@ -77,5 +78,7 @@ class OptionsDialog(QDialog):
             self.Ui.exitCheckBox.isChecked()))
         self._config["Placer"]["refreshOnFocus"] = str(bool(
             self.Ui.focusCheckBox.isChecked()))
+        self._config["Placer"]["prettyPrint"] = str(bool(
+            self.Ui.prettyCheckBox.isChecked()))
         self._config["Nexus"]["api"] = self.Ui.apiLineEdit.text()
         return self._config

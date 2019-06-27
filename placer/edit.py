@@ -2,10 +2,11 @@ from os import listdir
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QLabel, QVBoxLayout,
                              QLineEdit, QMessageBox, QFileDialog)
 from PyQt5.QtCore import Qt
-from placer.ui.editconfig import Ui_ConfigEditDialog
+from placer.ui.editconfig import Ui_EditConfigDialog
+from placer.ui.editmod import Ui_EditModDialog
 
 
-class ConfigEditDialog(QDialog):
+class EditConfigDialog(QDialog):
     def __init__(self, name, config, parent):
         super().__init__(parent)
         self._name = name
@@ -13,17 +14,17 @@ class ConfigEditDialog(QDialog):
         self.Ui = Ui_ConfigEditDialog()
         self.Ui.setupUi(self)
         self.Ui.nameLineEdit.setText(name)
-        self.Ui.gameLineEdit.setText(config["Settings"]["game"])
-        self.Ui.dataLineEdit.setText(config["Settings"]["data"])
+        self.Ui.gameLineEdit.setText(config["game"])
+        self.Ui.dataLineEdit.setText(config["data"])
         self.Ui.dataToolButton.clicked.connect(lambda: self.browseDirectory(
             self.Ui.dataLineEdit))
-        self.Ui.modsLineEdit.setText(config["Settings"]["mods"])
+        self.Ui.modsLineEdit.setText(config["mods"])
         self.Ui.modsToolButton.clicked.connect(lambda: self.browseDirectory(
             self.Ui.modsLineEdit))
-        self.Ui.pluginsLineEdit.setText(config["Settings"]["plugins"])
+        self.Ui.pluginsLineEdit.setText(config["plugins"])
         self.Ui.pluginsToolButton.clicked.connect(lambda: self.browseFile(
             self.Ui.pluginsLineEdit))
-        self.Ui.prefixLineEdit.setText(config["Settings"]["pluginpref"])
+        self.Ui.prefixLineEdit.setText(config["prefix"])
         self.show()
 
     def browseDirectory(self, lineEdit):
@@ -48,30 +49,35 @@ class ConfigEditDialog(QDialog):
         super().accept()
 
     def getConfig(self):
-        self._config["Settings"]["game"] = self.Ui.gameLineEdit.text()
-        self._config["Settings"]["data"] = self.Ui.dataLineEdit.text()
-        self._config["Settings"]["mods"] = self.Ui.modsLineEdit.text()
-        self._config["Settings"]["plugins"] = self.Ui.pluginsLineEdit.text()
-        self._config["Settings"]["pluginpref"] = self.Ui.prefixLineEdit.text()
+        self._config["game"] = self.Ui.gameLineEdit.text()
+        self._config["data"] = self.Ui.dataLineEdit.text()
+        self._config["mods"] = self.Ui.modsLineEdit.text()
+        self._config["plugins"] = self.Ui.pluginsLineEdit.text()
+        self._config["prefix"] = self.Ui.prefixLineEdit.text()
         return self.Ui.nameLineEdit.text(), self._config
 
 
-class EditDialog(QDialog):
-    def __init__(self, editBoxes, parent):
+class EditModDialog(QDialog):
+    def __init__(self, item, game, parent):
         super().__init__(parent)
-        self.setWindowTitle("Edit - Mod Placer")
-        self.setModal(True)
-        layout = QVBoxLayout(self)
-        for box in editBoxes:
-            layout.addWidget(QLabel(box, self))
-            layout.addWidget(QLineEdit(editBoxes[box], self))
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
-        self.setMinimumWidth(400)
+        self._item = item
+        self.Ui = Ui_EditModDialog()
+        self.Ui.setupUi(self)
+        self.Ui.nameLineEdit.setText(item.data(Qt.UserRole))
+        self.Ui.versionLineEdit.setText(item.data(Qt.UserRole + 1))
+        nexusInfo = item.data(Qt.UserRole + 2).split("|")
+        self.Ui.idLineEdit.setText(nexusInfo[0])
+        if len(nexusInfo) != 1:
+            self.Ui.gameLineEdit.setText(nexusInfo[1])
+        self.Ui.gameLineEdit.setPlaceholderText(game)
         self.show()
 
-    def getValues(self):
-        return [box.text() for box in self.findChildren(QLineEdit)]
+    def getItem(self):
+        self._item.setData(Qt.UserRole, self.Ui.nameLineEdit.text())
+        self._item.setData(Qt.UserRole + 1, self.Ui.versionLineEdit.text())
+        nexusInfo = self.Ui.idLineEdit.text()
+        game = self.Ui.gameLineEdit.text()
+        if game:
+            nexusInfo = f"{nexusInfo}|{game}"
+        self._item.setData(Qt.UserRole + 2, nexusInfo)
+        return self._item
