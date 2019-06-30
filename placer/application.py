@@ -1,5 +1,5 @@
 from os import listdir, rename, utime
-from os.path import isdir, isfile, join
+from os.path import abspath, dirname, isdir, isfile, join
 from json import load, dump
 from configparser import ConfigParser
 from platform import system, release, python_version
@@ -229,7 +229,8 @@ class ModPlacer(QMainWindow):
             plugin = self.Ui.loadListWidget.item(index)
             self._modConf["LoadOrder"][index] = [plugin.data(Qt.UserRole),
                                               plugin.checkState()]
-        with open(self._config["Placer"]["config"], "w") as f:
+        with open(join(dirname(abspath(__file__)),
+                       self._config["Placer"]["config"]), "w") as f:
             if self._config["Placer"].getboolean("prettyPrint"):
                 dump(self._modConf, f, indent=4)
             else:
@@ -239,7 +240,7 @@ class ModPlacer(QMainWindow):
                 dump(self._modDB, f, indent=4)
             else:
                 dump(self._modDB, f, separators=(",", ":"))
-        with open("placer.ini", "w") as f:
+        with open(join(dirname(abspath(__file__)), "placer.ini"), "w") as f:
             self._config.write(f)
 
     def checkUpdates(self):
