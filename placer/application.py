@@ -229,7 +229,7 @@ class ModPlacer(QMainWindow):
             plugin = self.Ui.loadListWidget.item(index)
             self._modConf["LoadOrder"][index] = [plugin.data(Qt.UserRole),
                                               plugin.checkState()]
-        with open(join(dirname(realpath(__file__)),
+        with open(join(dirname(realpath(__file__)), "..",
                        self._config["Placer"]["config"]), "w") as f:
             if self._config["Placer"].getboolean("prettyPrint"):
                 dump(self._modConf, f, indent=4)
@@ -240,7 +240,7 @@ class ModPlacer(QMainWindow):
                 dump(self._modDB, f, indent=4)
             else:
                 dump(self._modDB, f, separators=(",", ":"))
-        with open(join(dirname(realpath(__file__)), "placer.ini"), "w") as f:
+        with open(join(dirname(realpath(__file__)), "..", "placer.ini"), "w") as f:
             self._config.write(f)
 
     def checkUpdates(self):
