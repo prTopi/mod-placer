@@ -32,7 +32,7 @@
            <enum>Qt::ActionsContextMenu</enum>
           </property>
           <property name="dragDropMode">
-           <enum>QAbstractItemView::NoDragDrop</enum>
+           <enum>QAbstractItemView::InternalMove</enum>
           </property>
           <property name="selectionMode">
            <enum>QAbstractItemView::ExtendedSelection</enum>
@@ -109,6 +109,8 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionInstallMod"/>
+    <addaction name="separator"/>
     <addaction name="actionRefresh"/>
     <addaction name="separator"/>
     <addaction name="actionCheckForUpdates"/>
@@ -163,6 +165,17 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionInstallMod">
+   <property name="text">
+    <string>Install mod...</string>
+   </property>
+  </action>
+  <action name="actionSeparator"/>
+  <action name="actionEditMod">
+   <property name="text">
+    <string>Edit mod</string>
    </property>
   </action>
  </widget>

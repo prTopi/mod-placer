@@ -1,21 +1,17 @@
-from platform import system, release, python_version
 from json import load
 from threading import Thread
 from urllib.request import urlopen, Request
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from placer import __version__
 
 
 class UpdateThread(QThread):
     signalFinished = pyqtSignal(str)
 
-    def __init__(self, mods, game, api, parent):
+    def __init__(self, mods, game, headers, parent):
         super().__init__(parent)
         self._mods = mods
         self._game = game
-        self._headers = {"User-Agent": f"ModPlacer/{__version__} "
-                         f"({system()} {release()}) "
-                         f"Python/{python_version()}", "apikey": api}
+        self._headers = headers
         self._updates = ""
 
     def run(self):

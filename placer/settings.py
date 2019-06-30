@@ -53,7 +53,7 @@ class SettingsDialog(QDialog):
         config.setdefault("prefix", "")
         config.setdefault("ModOrder", {})
         config.setdefault("LoadOrder", {})
-        dialog = ConfigEditDialog(name, config, self)
+        dialog = EditConfigDialog(name, config, self)
         if dialog.exec_():
             oldName = name + ".json"
             name, config = dialog.getConfig()
@@ -68,8 +68,10 @@ class SettingsDialog(QDialog):
 
     def update(self, text):
         if text:
+            self.Ui.editPushButton.setEnabled(True)
             self.Ui.buttonBox.setEnabled(True)
         else:
+            self.Ui.editPushButton.setEnabled(False)
             self.Ui.buttonBox.setEnabled(False)
 
     def getConfig(self):

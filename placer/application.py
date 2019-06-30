@@ -1,13 +1,18 @@
-from os import listdir, path, rename, utime
+from os import listdir, rename, utime
+from os.path import isdir, isfile, join
 from json import load, dump
 from configparser import ConfigParser
-from PyQt5.QtWidgets import QMainWindow, QListWidgetItem, QMessageBox
+from platform import system, release, python_version
+from PyQt5.QtWidgets import (QMainWindow, QListWidgetItem, QMessageBox,
+                             QFileDialog)
 from PyQt5.QtCore import Qt, QEvent, pyqtSlot
+from placer import __version__
 from placer.ui.mainwindow import Ui_MainWindow
 from placer.settings import SettingsDialog
 from placer.edit import EditModDialog
 from placer.save import SaveThread
 from placer.update import UpdateThread
+from placer.install import InstallThread
 
 
 class ModPlacer(QMainWindow):
@@ -15,20 +20,31 @@ class ModPlacer(QMainWindow):
         super().__init__()
         self._initialized = False
         self._config = ConfigParser()
-        if not self._config.read("placer.ini"):
-            self._config["Placer"] = {"config": "", "saveOnExit": True,
-                                      "refreshOnFocus": True,
-                                      "prettyPrint": False}
-            self._config["Nexus"] = {"api": ""}
+        self._config.read("placer.ini")
+        self._config.setdefault("config", {"Placer": {}, "Nexus": {}})
+        self._config["Placer"].setdefault("config", "")
+        self._config["Placer"].setdefault("saveOnExit", True)
+        self._config["Placer"].setdefault("refreshOnFocus", True)
+        self._config["Placer"].setdefault("prettyPrint", False)
+        self._config["Nexus"].setdefault("api", "")
         self._saver = None
         self._updater = None
+        self._installer = None
+        self._installerRunning = False
         self.Ui = Ui_MainWindow()
         self.Ui.setupUi(self)
+        self.Ui.actionSeparator.setSeparator(True)
+        self.Ui.actionInstallMod.triggered.connect(self.installMod)
+        self.Ui.actionEditMod.triggered.connect(lambda: self.changeModInfo(
+            self.Ui.modListWidget.currentItem()))
         self.Ui.actionRefresh.triggered.connect(self.refreshMods)
         self.Ui.actionCheckForUpdates.triggered.connect(self.checkUpdates)
         self.Ui.actionSettings.triggered.connect(self.loadConfig)
         self.Ui.modListWidget.itemDoubleClicked.connect(self.changeModInfo)
+        self.Ui.modListWidget.addAction(self.Ui.actionInstallMod)
+        self.Ui.modListWidget.addAction(self.Ui.actionEditMod)
         self.Ui.modListWidget.addAction(self.Ui.actionRefresh)
+        self.Ui.modListWidget.addAction(self.Ui.actionSeparator)
         self.Ui.modListWidget.addAction(self.Ui.actionCheckForUpdates)
         self.Ui.savePushButton.clicked.connect(self.saveMods)
         self.show()
@@ -59,13 +75,23 @@ class ModPlacer(QMainWindow):
         self._modConf.setdefault("prefix", "")
         self._modConf.setdefault("ModOrder", {})
         self._modConf.setdefault("LoadOrder", {})
+        try:
+            with open(join(self._modConf["mods"], "database.json")) as f:
+                self._modDB = load(f)
+        except FileNotFoundError:
+            self._modDB = {}
         self._data = self._modConf.get("data", "Data")
         self._mods = self._modConf.get("mods", "mods")
         self.setWindowTitle(config[:-5] + " - Mod Placer")
         if self._config["Nexus"]["api"]:
             self.Ui.actionCheckForUpdates.setEnabled(True)
+            self._headers = {"User-Agent": f"ModPlacer/{__version__} "
+                            f"({system()} {release()}) "
+                            f"Python/{python_version()}",
+                            "apikey": self._config["Nexus"]["api"]}
         else:
             self.Ui.actionCheckForUpdates.setEnabled(False)
+            self._headers = {}
         self._initialized = True
         self.Ui.actionRefresh.setEnabled(True)
         self.Ui.actionCheckForUpdates.setEnabled(True)
@@ -73,8 +99,40 @@ class ModPlacer(QMainWindow):
         self.Ui.loadListWidget.clear()
         self.refreshMods(save=False)
 
+    @pyqtSlot(str, str)
+    def displayError(self, title, content):
+        QMessageBox.critical(self, title, content, QMessageBox.Ok)
+
+    def installMod(self):
+        if self._installerRunning:
+            return
+        filters = "Archives (*.zip *.rar *.7z)"
+        filePath = QFileDialog.getOpenFileName(self, "Select Zip",
+                                               "", filters)
+        if filePath[0]:
+            self._installerRunning = True
+            self._installer = InstallThread(self._modConf, self._headers,
+                                            filePath[0], self)
+            self._installer.installError.connect(self.displayError)
+            self._installer.finishInstall.connect(self.installFinish)
+            self._installer.start()
+
+    @pyqtSlot(str, dict)
+    def installFinish(self, name, data):
+        if len(name):
+            found = self.Ui.modListWidget.findItems(name, Qt.MatchExactly)
+            if found:
+                item = found[0]
+            else:
+                item = self.createItem(name, Qt.Unchecked, data=data)
+                self.Ui.modListWidget.addItem(item)
+            self.changeModInfo(item)
+        self._installerRunning = False
+
     def refreshMods(self, *, save=True):
-        if path.isdir(self._data) and path.isdir(self._mods):
+        if self._installerRunning:
+            return
+        if isdir(self._modConf["data"]) and isdir(self._modConf["mods"]):
             self.Ui.savePushButton.setEnabled(True)
         else:
             self.Ui.savePushButton.setEnabled(False)
@@ -82,16 +140,44 @@ class ModPlacer(QMainWindow):
         if save:
             self.saveConfig()
         self.Ui.modListWidget.clear()
-        for mod in self._modConf["ModOrder"]:
-            self.addModItem(*self._modConf["ModOrder"][mod])
-        for mod in listdir(self._mods):
-            self.addModItem(mod)
+        for index in self._modConf["ModOrder"]:
+            self.addModItem(*self._modConf["ModOrder"][index])
+        for folder in listdir(self._modConf["mods"]):
+            self.addModItem(folder)
         self.Ui.loadListWidget.clear()
         for plugin in self._modConf["LoadOrder"]:
             self.addLoadItem(*self._modConf["LoadOrder"][plugin])
-        for plugin in listdir(self._data):
-            if plugin.endswith((".esm", ".esp", ".esl")):
+        for plugin in listdir(self._modConf["data"]):
                 self.addLoadItem(plugin)
+
+    def createItem(self, name, check, data={}):
+        item = QListWidgetItem(name)
+        item.setData(Qt.CheckStateRole, check)
+        item.setData(Qt.UserRole, name)
+        for index, x in enumerate(data):
+            item.setData(Qt.UserRole + index + 1, data[x])
+        tooltip = "\n".join([f"{x.title()}: {data[x]}" for x in data])
+        item.setToolTip(tooltip)
+        return item
+
+    def addModItem(self, name, check=Qt.Unchecked):
+        if (isdir(join(self._modConf["mods"], name)) and
+                not self.Ui.modListWidget.findItems(name, Qt.MatchExactly)):
+            try:
+                data = self._modDB[name]
+            except KeyError:
+                data={"version": "1.0", "id": ""}
+            item = self.createItem(name, check=check, data=data)
+            self.Ui.modListWidget.addItem(item)
+
+    def addLoadItem(self, name, check=Qt.Unchecked):
+        if (name.lower().endswith((".esm", ".esp", ".esl")) and
+                isfile(join(self._modConf["data"], name)) and
+                not self.Ui.loadListWidget.findItems(name, Qt.MatchExactly)):
+            index = self.Ui.loadListWidget.count()
+            data={"index": index, "id": f"{index:02X}"}
+            item = self.createItem(name, check=check, data=data)
+            self.Ui.loadListWidget.addItem(item)
 
     def changeModInfo(self, item):
         self.dialog = EditModDialog(item, self._modConf["game"], self)
@@ -99,36 +185,15 @@ class ModPlacer(QMainWindow):
             oldName = item.data(Qt.UserRole)
             item = self.dialog.getItem()
             if oldName != item.data(Qt.UserRole):
-                if item.data(Qt.UserRole) in listdir(self._mods):
+                if item.data(Qt.UserRole) in listdir(self._modConf["mods"]):
                     QMessageBox.warning(self, "Warning", "Mod with that name "
                                         "already exists.", QMessageBox.Ok)
                 else:
-                    rename(path.join(self._mods, oldName),
-                           path.join(self._mods, item.data(Qt.UserRole)))
+                    rename(join(self._modConf["mods"], oldName),
+                           join(self._modConf["mods"], item.data(Qt.UserRole)))
                     item.setText(item.data(Qt.UserRole))
             item.setToolTip(f"Version: {item.data(Qt.UserRole + 1)}\n"
-                            f"ID: {item.data(Qt.UserRole + 2)}")
-
-    def addModItem(self, name, check=Qt.Unchecked, version="1.0", modID=""):
-        if path.isdir(path.join(self._mods, name)):
-            if not self.Ui.modListWidget.findItems(name, Qt.MatchExactly):
-                item = QListWidgetItem(name)
-                item.setData(Qt.CheckStateRole, check)
-                item.setData(Qt.UserRole, name)
-                item.setData(Qt.UserRole + 1, version)
-                item.setData(Qt.UserRole + 2, modID)
-                item.setToolTip(f"Version: {version}\nID: {modID}")
-                self.Ui.modListWidget.addItem(item)
-
-    def addLoadItem(self, name, check=Qt.Unchecked):
-        if path.islink(path.join(self._data, name)):
-            if not self.Ui.loadListWidget.findItems(name, Qt.MatchExactly):
-                item = QListWidgetItem(name)
-                item.setData(Qt.CheckStateRole, check)
-                item.setData(Qt.UserRole, name)
-                index = self.Ui.loadListWidget.count()
-                item.setToolTip(f"Index: {index}\nHex: {index:02X}")
-                self.Ui.loadListWidget.addItem(item)
+                            f"Id: {item.data(Qt.UserRole + 2)}")
 
     def saveMods(self):
         self.refreshMods()
@@ -140,26 +205,27 @@ class ModPlacer(QMainWindow):
             mod = self.Ui.modListWidget.item(index)
             if mod.checkState():
                 mods.append(mod.data(Qt.UserRole))
-        plugins = []
+        plugins = {}
         for index in range(self.Ui.loadListWidget.count()):
             plugin = self.Ui.loadListWidget.item(index)
-            if plugin.checkState():
-                plugins.append(plugin.data(Qt.UserRole))
-        self._saver = SaveThread(self._modConf, mods,
-                                      plugins, self)
+            plugins[plugin.data(Qt.UserRole)] = plugin.checkState()
+        self._saver = SaveThread(self._modConf, mods, plugins, self)
         self._saver.finished.connect(self.refreshMods)
         self._saver.start()
 
     def saveConfig(self):
-        if not path.isdir(self._data) and not path.isdir(self._mods):
+        if (not isdir(self._modConf["data"]) and
+                not isdir(self._modConf["mods"])):
             return
         self._modConf["ModOrder"] = {}
+        self._modDB = {}
         for index in range(self.Ui.modListWidget.count()):
             mod = self.Ui.modListWidget.item(index)
-            self._modConf["ModOrder"][index] = (mod.data(Qt.UserRole),
-                                              mod.checkState(),
-                                              mod.data(Qt.UserRole + 1),
-                                              mod.data(Qt.UserRole + 2))
+            name = mod.data(Qt.UserRole)
+            self._modConf["ModOrder"][index] = (name,
+                                                mod.checkState())
+            self._modDB[name] = {"version": mod.data(Qt.UserRole + 1),
+                                 "id": mod.data(Qt.UserRole + 2)}
         self._modConf["LoadOrder"] = {}
         for index in range(self.Ui.loadListWidget.count()):
             plugin = self.Ui.loadListWidget.item(index)
@@ -170,6 +236,11 @@ class ModPlacer(QMainWindow):
                 dump(self._modConf, f, indent=4)
             else:
                 dump(self._modConf, f, separators=(",", ":"))
+        with open(join(self._modConf["mods"], "database.json"), "w") as f:
+            if self._config["Placer"].getboolean("prettyPrint"):
+                dump(self._modDB, f, indent=4)
+            else:
+                dump(self._modDB, f, separators=(",", ":"))
         with open("placer.ini", "w") as f:
             self._config.write(f)
 

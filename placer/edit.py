@@ -11,7 +11,7 @@ class EditConfigDialog(QDialog):
         super().__init__(parent)
         self._name = name
         self._config = config
-        self.Ui = Ui_ConfigEditDialog()
+        self.Ui = Ui_EditConfigDialog()
         self.Ui.setupUi(self)
         self.Ui.nameLineEdit.setText(name)
         self.Ui.gameLineEdit.setText(config["game"])
@@ -28,13 +28,13 @@ class EditConfigDialog(QDialog):
         self.show()
 
     def browseDirectory(self, lineEdit):
-        dirPath = QFileDialog.getExistingDirectory(self, 'Select Folder',
+        dirPath = QFileDialog.getExistingDirectory(self, "Select Folder",
                                                    lineEdit.text())
         if dirPath:
             lineEdit.setText(dirPath)
 
     def browseFile(self, lineEdit):
-        filePath = QFileDialog.getOpenFileName(self, 'Select File',
+        filePath = QFileDialog.getOpenFileName(self, "Select File",
                                                lineEdit.text())
         if filePath[0]:
             lineEdit.setText(filePath[0])
