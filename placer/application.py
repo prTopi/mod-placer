@@ -5,7 +5,7 @@ from configparser import ConfigParser
 from platform import system, release, python_version
 from PyQt5.QtWidgets import (QMainWindow, QListWidgetItem, QMessageBox,
                              QFileDialog)
-from PyQt5.QtCore import Qt, QEvent, pyqtSlot
+from PyQt5.QtCore import Qt, QEvent, QThread, pyqtSlot
 from placer import __version__
 from placer.ui.mainwindow import Ui_MainWindow
 from placer.settings import SettingsDialog
@@ -28,10 +28,11 @@ class ModPlacer(QMainWindow):
         self._config["Placer"].setdefault("refreshOnFocus", True)
         self._config["Placer"].setdefault("prettyPrint", False)
         self._config["Nexus"].setdefault("api", "")
-        self._saver = None
-        self._updater = None
-        self._installer = None
-        self._installerRunning = False
+        # Create blank QThreads so that we can use self._thread.isRunning()
+        self._saver = QThread()
+        self._updater = QThread()
+        self._installer = QThread()
+        # UI is located in a different file, created with QtDesigner
         self.Ui = Ui_MainWindow()
         self.Ui.setupUi(self)
         self.Ui.actionSeparator.setSeparator(True)
@@ -105,13 +106,12 @@ class ModPlacer(QMainWindow):
         QMessageBox.critical(self, title, content, QMessageBox.Ok)
 
     def installMod(self):
-        if self._installerRunning:
+        if self._installer.isRunning():
             return
         filters = "Archives (*.zip *.rar *.7z)"
         filePath = QFileDialog.getOpenFileName(self, "Select Zip",
                                                "", filters)
         if filePath[0]:
-            self._installerRunning = True
             self._installer = InstallThread(self._modConf, self._headers,
                                             filePath[0], self)
             self._installer.installError.connect(self.displayError)
@@ -128,11 +128,8 @@ class ModPlacer(QMainWindow):
                 item = self.createItem(name, Qt.Unchecked, data=data)
                 self.Ui.modListWidget.addItem(item)
             self.changeModInfo(item)
-        self._installerRunning = False
 
     def refreshMods(self, *, save=True):
-        if self._installerRunning:
-            return
         if isdir(self._modConf["data"]) and isdir(self._modConf["mods"]):
             self.Ui.savePushButton.setEnabled(True)
         else:
@@ -262,6 +259,15 @@ class ModPlacer(QMainWindow):
         QMessageBox.information(self, "Mod updates", updates, QMessageBox.Ok)
 
     def closeEvent(self, event):
+        if (self._saver.isRunning() or self._updater.isRunning() or
+                self._installer.isRunning()):
+            msg = "Worker thread(s) are currently running.\n" \
+                "Are you sure you want to exit?"
+            dial = QMessageBox.question(self, "Are you sure?", msg,
+                                        QMessageBox.Yes | QMessageBox.No)
+            if dial == QMessageBox.No:
+                event.ignore()
+                return
         if (self._config["Placer"].getboolean("saveOnExit") and
                 self._initialized):
             self.saveConfig()
