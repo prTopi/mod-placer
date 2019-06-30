@@ -21,7 +21,8 @@ class ModPlacer(QMainWindow):
         self._initialized = False
         self._config = ConfigParser()
         self._config.read("placer.ini")
-        self._config.setdefault("config", {"Placer": {}, "Nexus": {}})
+        self._config.setdefault("Placer", {})
+        self._config.setdefault("Nexus", {})
         self._config["Placer"].setdefault("config", "")
         self._config["Placer"].setdefault("saveOnExit", True)
         self._config["Placer"].setdefault("refreshOnFocus", True)
