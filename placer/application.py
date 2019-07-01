@@ -249,8 +249,7 @@ class ModPlacer(QMainWindow):
         for index in range(self.Ui.modListWidget.count()):
             mod = self.Ui.modListWidget.item(index)
             mods.append(mod)
-        self._updater = UpdateThread(mods, self._modConf["game"],
-                                     self._config["Nexus"]["api"], self)
+        self._updater = UpdateThread(mods, self._modConf["game"], self._headers, self)
         self._updater.signalFinished.connect(self.finishUpdate)
         self._updater.start()
 
