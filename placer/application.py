@@ -1,12 +1,12 @@
 from os import listdir, rename
-from os.path import dirname, isdir, isfile, join, realpath
+from os.path import isdir, isfile, join
 from json import load, dump
 from configparser import ConfigParser
 from platform import system, release, python_version
 from PyQt5.QtWidgets import (QMainWindow, QListWidgetItem, QMessageBox,
                              QFileDialog)
 from PyQt5.QtCore import Qt, QEvent, QThread, pyqtSlot
-from placer import __version__
+from placer import __basedir__, __version__
 from placer.ui.mainwindow import Ui_MainWindow
 from placer.settings import SettingsDialog
 from placer.edit import EditModDialog
@@ -22,14 +22,12 @@ class ModPlacer(QMainWindow):
         self._config = ConfigParser()
         self._config.read("placer.ini")
         self._config.setdefault("Placer", {})
-        self._config.setdefault("Compatibility", {})
         self._config.setdefault("Updates", {})
         self._config["Placer"].setdefault("config", "")
         self._config["Placer"].setdefault("saveOnExit", "True")
         self._config["Placer"].setdefault("refreshOnFocus", "True")
         self._config["Placer"].setdefault("prettyPrint", "False")
         self._config["Placer"].setdefault("emptyData", "True")
-        self._config["Compatibility"].setdefault("useMove", "False")
         self._config["Updates"].setdefault("nexusApi", "")
 
         # Init all threads the workers will use
@@ -257,8 +255,8 @@ class ModPlacer(QMainWindow):
             self._modConf["LoadOrder"][index] = [plugin.data(Qt.UserRole),
                                                  plugin.checkState()]
 
-        with open(join(dirname(realpath(__file__)), "..",
-                       self._config["Placer"]["config"]), "w") as f:
+        with open(join(__basedir__, self._config["Placer"]["config"]),
+                  "w") as f:
             if self._config["Placer"].getboolean("prettyPrint"):
                 dump(self._modConf, f, indent=4)
             else:
@@ -270,8 +268,7 @@ class ModPlacer(QMainWindow):
             else:
                 dump(self._modDB, f, separators=(",", ":"))
 
-        with open(join(dirname(realpath(__file__)), "..",
-                       "placer.ini"), "w") as f:
+        with open(join(__basedir__, "placer.ini"), "w") as f:
             self._config.write(f)
 
     def checkUpdates(self):

@@ -1,5 +1,6 @@
-from os import makedirs, mkdir, rename, rmdir, symlink, unlink, utime, walk
+from os import makedirs, mkdir, rmdir, symlink, unlink, utime, walk
 from os.path import isdir, islink, join
+from shutil import move
 from PyQt5.QtCore import QObject, pyqtSignal
 
 
@@ -14,16 +15,10 @@ class SaveWorker(QObject):
         self._plugins = plugins
 
     def save(self):
-        if self._config["Compatibility"].getboolean("useMove"):
-            from shutil import move
-            moveFunc = move
-        else:
-            moveFunc = rename
-
         if self._config["Placer"].getboolean("emptyData"):
             self.copyTree(self._modConf["data"],
                           join(self._modConf["mods"], "Data Backup"),
-                          moveFunc, clean=True)
+                          move, clean=True)
 
         for mod in self._mods:
             self.copyTree(join(self._modConf["mods"], mod),
@@ -57,10 +52,12 @@ class SaveWorker(QObject):
         if not clean:
             if not isdir(dstFolder):
                 mkdir(dstFolder)
+
         for root, dirs, files in walk(srcFolder):
             for name in dirs:
                 self.copyTree(join(root, name), join(dstFolder, name),
                               function, clean)
+
             for name in files:
                 source = join(root, name)
                 destination = join(dstFolder, name)
@@ -74,5 +71,6 @@ class SaveWorker(QObject):
                     function(source, destination)
                 elif clean:
                     unlink(source)
+
         if clean:
             rmdir(srcFolder)

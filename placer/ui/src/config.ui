@@ -159,31 +159,6 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="compatibilityTab">
-      <attribute name="title">
-       <string>Compatibility</string>
-      </attribute>
-      <layout class="QFormLayout" name="compatibilityFormLayout">
-       <item row="0" column="0">
-        <widget class="QLabel" name="moveLabel">
-         <property name="text">
-          <string>High level move</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QCheckBox" name="moveCheckBox">
-         <property name="toolTip">
-          <string>Use higher level move utility. More compatibility but slower.
-Needed if data and mods folders are on different drives.</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
      <widget class="QWidget" name="updatesTab">
       <attribute name="title">
        <string>Updates</string>

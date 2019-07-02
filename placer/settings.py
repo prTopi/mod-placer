@@ -24,8 +24,6 @@ class SettingsDialog(QDialog):
             self._config["Placer"].getboolean("prettyPrint"))
         self.Ui.emptyDataCheckBox.setChecked(
             self._config["Placer"].getboolean("emptyData"))
-        self.Ui.moveCheckBox.setChecked(
-            self._config["Compatibility"].getboolean("useMove"))
         self.Ui.apiLineEdit.setText(self._config["Updates"]["nexusApi"])
         self.refresh(self._config["Placer"]["config"])
         self.show()
@@ -88,7 +86,5 @@ class SettingsDialog(QDialog):
             self.Ui.prettyCheckBox.isChecked()))
         self._config["Placer"]["emptyData"] = str(bool(
             self.Ui.emptyDataCheckBox.isChecked()))
-        self._config["Compatibility"]["useMove"] = str(bool(
-            self.Ui.moveCheckBox.isChecked()))
         self._config["Updates"]["nexusApi"] = self.Ui.apiLineEdit.text()
         return self._config
