@@ -120,7 +120,7 @@ class ModPlacer(QMainWindow):
         QMessageBox.critical(self, title, content, QMessageBox.Ok)
 
     def installMod(self):
-        if self._installer.isRunning():
+        if self._installerThread.isRunning():
             return
 
         filters = "Archives (*.zip *.rar *.7z)"
