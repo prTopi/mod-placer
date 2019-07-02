@@ -22,7 +22,7 @@ class InstallWorker(QObject):
 
     def install(self):
         try:
-            from libarchive import extract_fd, ArchiveError
+            from libarchive import extract_file, ArchiveError
         except ImportError as e:
             self.installError.emit("Import error", e.message)
             self.finished.emit("", {})
@@ -34,8 +34,7 @@ class InstallWorker(QObject):
         with TemporaryDirectory() as root:
             chdir(root)
             try:
-                with open(self._target, "r+b") as f:
-                    extract_fd(f.fileno())
+                extract_file(self._target)
             except ArchiveError as e:
                 self.installError.emit("Error extracting archive", e.msg)
                 self.finished.emit("", {})
