@@ -24,9 +24,9 @@ class ModPlacer(QMainWindow):
         self._config.setdefault("Placer", {})
         self._config.setdefault("Nexus", {})
         self._config["Placer"].setdefault("config", "")
-        self._config["Placer"].setdefault("saveOnExit", True)
-        self._config["Placer"].setdefault("refreshOnFocus", True)
-        self._config["Placer"].setdefault("prettyPrint", False)
+        self._config["Placer"].setdefault("saveOnExit", "True")
+        self._config["Placer"].setdefault("refreshOnFocus", "True")
+        self._config["Placer"].setdefault("prettyPrint", "False")
         self._config["Nexus"].setdefault("api", "")
         # Create blank QThreads so that we can use self._thread.isRunning()
         self._saver = QThread()
@@ -55,6 +55,7 @@ class ModPlacer(QMainWindow):
     def loadConfig(self, *, config=""):
         self._initialized = False
         self.Ui.savePushButton.setEnabled(False)
+        self.Ui.actionInstallMod.setEnabled(False)
         self.Ui.actionRefresh.setEnabled(False)
         self.Ui.actionCheckForUpdates.setEnabled(False)
         if config == "":
@@ -95,6 +96,7 @@ class ModPlacer(QMainWindow):
             self.Ui.actionCheckForUpdates.setEnabled(False)
             self._headers = {}
         self._initialized = True
+        self.Ui.actionInstallMod.setEnabled(False)
         self.Ui.actionRefresh.setEnabled(True)
         self.Ui.actionCheckForUpdates.setEnabled(True)
         self.Ui.modListWidget.clear()
@@ -146,7 +148,7 @@ class ModPlacer(QMainWindow):
         for plugin in self._modConf["LoadOrder"]:
             self.addLoadItem(*self._modConf["LoadOrder"][plugin])
         for plugin in listdir(self._modConf["data"]):
-                self.addLoadItem(plugin)
+            self.addLoadItem(plugin)
 
     def createItem(self, name, check, data={}):
         item = QListWidgetItem(name)
@@ -164,7 +166,7 @@ class ModPlacer(QMainWindow):
             try:
                 data = self._modDB[name]
             except KeyError:
-                data={"version": "1.0", "id": ""}
+                data = {"version": "1.0", "id": ""}
             item = self.createItem(name, check=check, data=data)
             self.Ui.modListWidget.addItem(item)
 
@@ -173,7 +175,7 @@ class ModPlacer(QMainWindow):
                 isfile(join(self._modConf["data"], name)) and
                 not self.Ui.loadListWidget.findItems(name, Qt.MatchExactly)):
             index = self.Ui.loadListWidget.count()
-            data={"index": index, "id": f"{index:02X}"}
+            data = {"index": index, "id": f"{index:02X}"}
             item = self.createItem(name, check=check, data=data)
             self.Ui.loadListWidget.addItem(item)
 
@@ -197,6 +199,7 @@ class ModPlacer(QMainWindow):
         self.refreshMods()
         if not self.Ui.savePushButton.isEnabled():
             return
+
         self.Ui.savePushButton.setEnabled(False)
         mods = []
         for index in range(self.Ui.modListWidget.count()):
@@ -215,6 +218,7 @@ class ModPlacer(QMainWindow):
         if (not isdir(self._modConf["data"]) and
                 not isdir(self._modConf["mods"])):
             return
+
         self._modConf["ModOrder"] = {}
         self._modDB = {}
         for index in range(self.Ui.modListWidget.count()):
