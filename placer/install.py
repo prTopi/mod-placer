@@ -1,11 +1,13 @@
-from os import getcwd, chdir, listdir, makedirs, rmdir, rename, unlink
+from os import chdir, mkdir, rmdir, unlink, walk
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from re import search, sub
-from shutil import copy2, rmtree
+from shutil import move
 from json import load
 from urllib.request import urlopen, Request
 from contextlib import contextmanager
+from tempfile import TemporaryDirectory
 from PyQt5.QtCore import QObject, pyqtSignal
+from placer import __basedir__
 
 
 class InstallWorker(QObject):
@@ -18,20 +20,6 @@ class InstallWorker(QObject):
         self._target = target
         self._headers = headers
 
-    @contextmanager
-    def tmpdir(self):
-        start = getcwd()
-        if isdir(".tmp"):
-            rmtree(".tmp")
-        makedirs(".tmp")
-        chdir(".tmp")
-        try:
-            yield
-        finally:
-            if isdir(".tmp"):
-                rmtree(".tmp")
-            chdir(start)
-
     def install(self):
         try:
             from libarchive import extract_fd, ArchiveError
@@ -39,9 +27,12 @@ class InstallWorker(QObject):
             self.installError.emit("Import error", e.message)
             self.finished.emit("", {})
             return
+
         name = splitext(basename(self._target))[0]
         data = {"version": "", "id": ""}
-        with self.tmpdir():
+
+        with TemporaryDirectory() as root:
+            chdir(root)
             try:
                 with open(self._target, "r+b") as f:
                     extract_fd(f.fileno())
@@ -49,14 +40,16 @@ class InstallWorker(QObject):
                 self.installError.emit("Error extracting archive", e.msg)
                 self.finished.emit("", {})
                 return
-            self.normalizeTree(getcwd())
+            self.normalizeTree(root)
+
             try:
                 nexusInfo = search(r"-(\d+)(.+)?$", name)
                 name = sub(r"-(\d+)(.+)?$", "", name)
                 data["id"] = nexusInfo[1]
                 data["version"] = nexusInfo[2].replace("-", ".")[1:]
-            except Exception:
+            except IndexError:
                 pass
+
             if self._headers and data["id"]:
                 try:
                     url = "https://api.nexusmods.com/v1/games/" \
@@ -68,30 +61,37 @@ class InstallWorker(QObject):
                     data["version"] = page["version"]
                 except Exception:
                     pass
-            self.moveTree(getcwd(), join(self._config["mods"], name))
+
+            self.moveTree(root, join(self._config["mods"], name))
+            chdir(__basedir__)
         self.finished.emit(name, data)
 
-    def normalizeTree(self, folder):
-        for item in listdir(folder):
-            source = join(folder, item)
-            if isdir(source):
-                self.normalizeTree(source)
-            else:
-                item = item.lower()
-                if not item.endswith((".bsa", ".esm", ".esp", ".esl")):
-                    rename(source, join(folder, item))
-        rename(folder, join(dirname(folder), basename(folder).lower()))
+    def normalizeTree(self, folder, subDir=False):
+        for root, dirs, files in walk(folder):
+            for name in dirs:
+                self.normalizeTree(join(root, name), True)
 
-    def moveTree(self, srcFolder, dstFolder):
-        for item in listdir(srcFolder):
-            source = join(srcFolder, item)
-            destination = join(dstFolder, item)
-            if isdir(source):
-                self.moveTree(source, destination)
-            else:
-                if isfile(destination):
-                    unlink(destination)
-                makedirs(dirname(destination), exist_ok=True)
-                copy2(source, destination)
-                unlink(source)
-        rmdir(srcFolder)
+            for name in files:
+                lowName = name.lower()
+                if lowName != name:
+                    if not lowName.endswith((".bsa", ".esm", ".esp", ".esl")):
+                        move(join(folder, name), join(folder, lowName))
+
+        if subDir:
+            move(folder, join(dirname(folder), basename(folder).lower()))
+
+    def moveTree(self, srcFolder, dstFolder, subDir=False):
+        if not isdir(dstFolder):
+            mkdir(dstFolder)
+
+        for root, dirs, files in walk(srcFolder):
+            for name in dirs:
+                self.moveTree(join(root, name), join(dstFolder, name), True)
+
+            for name in files:
+                source = join(root, name)
+                destination = join(dstFolder, name)
+                move(source, destination)
+
+        if subDir:
+            rmdir(srcFolder)
