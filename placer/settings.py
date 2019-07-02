@@ -23,6 +23,8 @@ class SettingsDialog(QDialog):
             self._config["Placer"].getboolean("refreshOnFocus"))
         self.Ui.prettyCheckBox.setChecked(
             self._config["Placer"].getboolean("prettyPrint"))
+        self.Ui.emptyDataCheckBox.setChecked(
+            self._config["Placer"].getboolean("emptyData"))
         self.refresh(self._config["Placer"]["config"])
         self.show()
 
@@ -82,5 +84,7 @@ class SettingsDialog(QDialog):
             self.Ui.focusCheckBox.isChecked()))
         self._config["Placer"]["prettyPrint"] = str(bool(
             self.Ui.prettyCheckBox.isChecked()))
+        self._config["Placer"]["emptyData"] = str(bool(
+            self.Ui.emptyDataCheckBox.isChecked()))
         self._config["Nexus"]["api"] = self.Ui.apiLineEdit.text()
         return self._config

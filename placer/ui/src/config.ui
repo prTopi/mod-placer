@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>190</height>
+    <height>250</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,7 +19,7 @@
   <property name="maximumSize">
    <size>
     <width>16777215</width>
-    <height>190</height>
+    <height>250</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -115,7 +115,17 @@
    <item row="4" column="1">
     <widget class="QCheckBox" name="exitCheckBox"/>
    </item>
-   <item row="6" column="1">
+   <item row="5" column="0">
+    <widget class="QLabel" name="prettyLabel">
+     <property name="text">
+      <string>Pretty print config</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QCheckBox" name="prettyCheckBox"/>
+   </item>
+   <item row="7" column="1">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="enabled">
       <bool>false</bool>
@@ -125,13 +135,13 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="1">
-    <widget class="QCheckBox" name="prettyCheckBox"/>
+   <item row="6" column="1">
+    <widget class="QCheckBox" name="emptyDataCheckBox"/>
    </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="prettyLabel">
+   <item row="6" column="0">
+    <widget class="QLabel" name="emptyDataLabel">
      <property name="text">
-      <string>Pretty print config</string>
+      <string>Empty data folder</string>
      </property>
     </widget>
    </item>

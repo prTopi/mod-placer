@@ -5,39 +5,41 @@ from PyQt5.QtCore import QThread
 
 
 class SaveThread(QThread):
-    def __init__(self, config, mods, plugins, parent):
+    def __init__(self, config, modConf mods, plugins, parent):
         super().__init__(parent)
         self._config = config
+        self._modConf = modConf
         self._mods = mods
         self._plugins = plugins
 
     def run(self):
-        self.copyTree(self._config["data"],
-                      join(self._config["mods"], "Data Backup"),
-                      rm=False)
+        if self._config["Placer"].getboolean("emptyData"):
+            self.copyTree(self._modConf["data"],
+                        join(self._modConf["mods"], "Data Backup"),
+                        rm=False)
         for mod in self._mods:
-            self.copyTree(join(self._config["mods"], mod),
-                          self._config["data"])
+            self.copyTree(join(self._modConf["mods"], mod),
+                          self._modConf["data"])
         newTime = 978300000
-        for file in listdir(self._config["data"]):
+        for file in listdir(self._modConf["data"]):
             if file.endswith(".bsa"):
                 try:
-                    utime(join(self._config["data"], file),
+                    utime(join(self._modConf["data"], file),
                         (newTime, newTime))
                 except FileNotFoundError:
                     pass
         for plugin in self._plugins:
             try:
-                utime(join(self._config["data"], plugin), (newTime, newTime))
+                utime(join(self._modConf["data"], plugin), (newTime, newTime))
                 newTime += 1
             except FileNotFoundError:
                 pass
-        if self._config["plugins"]:
-            makedirs(dirname(self._config["plugins"]), exist_ok=True)
-            with open(join(self._config["plugins"]), "w") as f:
+        if self._modConf["plugins"]:
+            makedirs(dirname(self._modConf["plugins"]), exist_ok=True)
+            with open(join(self._modConf["plugins"]), "w") as f:
                 for plugin in self._plugins:
                     if self._plugins[plugin]:
-                        f.write(f"{self._config['prefix']}{plugin}\n")
+                        f.write(f"{self._modConf['prefix']}{plugin}\n")
 
     def copyTree(self, srcFolder, dstFolder, rm=None):
         for item in listdir(srcFolder):

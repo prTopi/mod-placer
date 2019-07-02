@@ -27,6 +27,7 @@ class ModPlacer(QMainWindow):
         self._config["Placer"].setdefault("saveOnExit", "True")
         self._config["Placer"].setdefault("refreshOnFocus", "True")
         self._config["Placer"].setdefault("prettyPrint", "False")
+        self._config["Placer"].setdefault("emptyData", "False")
         self._config["Nexus"].setdefault("api", "")
         # Create blank QThreads so that we can use self._thread.isRunning()
         self._saver = QThread()
@@ -210,7 +211,8 @@ class ModPlacer(QMainWindow):
         for index in range(self.Ui.loadListWidget.count()):
             plugin = self.Ui.loadListWidget.item(index)
             plugins[plugin.data(Qt.UserRole)] = plugin.checkState()
-        self._saver = SaveThread(self._modConf, mods, plugins, self)
+        self._saver = SaveThread(self._config, self._modConf, mods, plugins,
+                                 self)
         self._saver.finished.connect(self.refreshMods)
         self._saver.start()
 
