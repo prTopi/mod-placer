@@ -108,7 +108,7 @@ class ModPlacer(QMainWindow):
             self._headers = {}
 
         self._initialized = True
-        self.Ui.actionInstallMod.setEnabled(False)
+        self.Ui.actionInstallMod.setEnabled(True)
         self.Ui.actionRefresh.setEnabled(True)
         self.Ui.actionCheckForUpdates.setEnabled(True)
         self.Ui.modListWidget.clear()
