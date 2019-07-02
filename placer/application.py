@@ -22,13 +22,15 @@ class ModPlacer(QMainWindow):
         self._config = ConfigParser()
         self._config.read("placer.ini")
         self._config.setdefault("Placer", {})
-        self._config.setdefault("Nexus", {})
+        self._config.setdefault("Compatibility", {})
+        self._config.setdefault("Updates", {})
         self._config["Placer"].setdefault("config", "")
         self._config["Placer"].setdefault("saveOnExit", "True")
         self._config["Placer"].setdefault("refreshOnFocus", "True")
         self._config["Placer"].setdefault("prettyPrint", "False")
         self._config["Placer"].setdefault("emptyData", "True")
-        self._config["Nexus"].setdefault("api", "")
+        self._config["Compatibility"].setdefault("useMove", "False")
+        self._config["Updates"].setdefault("nexusApi", "")
 
         # Init all threads the workers will use
         self._saver = None
@@ -95,12 +97,12 @@ class ModPlacer(QMainWindow):
         except FileNotFoundError:
             self._modDB = {}
 
-        if self._config["Nexus"]["api"]:
+        if self._config["Updates"]["nexusApi"]:
             self.Ui.actionCheckForUpdates.setEnabled(True)
             self._headers = {"User-Agent": f"ModPlacer/{__version__} "
                              f"({system()} {release()}) "
                              f"Python/{python_version()}",
-                             "apikey": self._config["Nexus"]["api"]}
+                             "apikey": self._config["Updates"]["nexusApi"]}
         else:
             self.Ui.actionCheckForUpdates.setEnabled(False)
             self._headers = {}

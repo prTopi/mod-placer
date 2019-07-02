@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>250</height>
+    <height>350</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,7 +19,7 @@
   <property name="maximumSize">
    <size>
     <width>16777215</width>
-    <height>250</height>
+    <height>350</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -28,120 +28,195 @@
   <property name="modal">
    <bool>true</bool>
   </property>
-  <layout class="QFormLayout" name="formLayout">
-   <item row="1" column="0">
-    <widget class="QLabel" name="apiLabel">
-     <property name="text">
-      <string>Api Key</string>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
      </property>
-     <property name="buddy">
-      <cstring>apiLineEdit</cstring>
-     </property>
+     <widget class="QWidget" name="generalTab">
+      <attribute name="title">
+       <string>General</string>
+      </attribute>
+      <layout class="QFormLayout" name="generalFormLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="configLabel">
+         <property name="text">
+          <string>Config</string>
+         </property>
+         <property name="buddy">
+          <cstring>configComboBox</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <layout class="QHBoxLayout" name="buttonsHorizontalLayout">
+         <property name="spacing">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QComboBox" name="configComboBox">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="editPushButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>50</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Edit</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="addToolButton">
+           <property name="text">
+            <string>+</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="focusLabel">
+         <property name="text">
+          <string>Refresh on focus</string>
+         </property>
+         <property name="buddy">
+          <cstring>focusCheckBox</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QCheckBox" name="focusCheckBox">
+         <property name="toolTip">
+          <string>Refresh mod and load order when application regains focus.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="exitLabel">
+         <property name="text">
+          <string>Save on exit</string>
+         </property>
+         <property name="buddy">
+          <cstring>exitCheckBox</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QCheckBox" name="exitCheckBox">
+         <property name="toolTip">
+          <string>Save mod and load order when exiting program.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="prettyLabel">
+         <property name="text">
+          <string>Pretty print config</string>
+         </property>
+         <property name="buddy">
+          <cstring>prettyCheckBox</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QCheckBox" name="prettyCheckBox">
+         <property name="toolTip">
+          <string>Make JSON config files readable.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="emptyDataLabel">
+         <property name="text">
+          <string>Empty data folder</string>
+         </property>
+         <property name="buddy">
+          <cstring>emptyDataCheckBox</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QCheckBox" name="emptyDataCheckBox">
+         <property name="toolTip">
+          <string>Move all files to &quot;mods/Data Backup&quot; folder before linking new files.</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="compatibilityTab">
+      <attribute name="title">
+       <string>Compatibility</string>
+      </attribute>
+      <layout class="QFormLayout" name="compatibilityFormLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="moveLabel">
+         <property name="text">
+          <string>High level move</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QCheckBox" name="moveCheckBox">
+         <property name="toolTip">
+          <string>Use higher level move utility. More compatibility but slower.
+Needed if data and mods folders are on different drives.</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="updatesTab">
+      <attribute name="title">
+       <string>Updates</string>
+      </attribute>
+      <layout class="QFormLayout" name="updatesFormLayout">
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="apiLineEdit">
+         <property name="toolTip">
+          <string>Needed for updates. Get one from Nexus &gt; My Settings &gt; API</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="apiLabel">
+         <property name="text">
+          <string>Nexus Api Key</string>
+         </property>
+         <property name="buddy">
+          <cstring>apiLineEdit</cstring>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
-   <item row="1" column="1">
-    <widget class="QLineEdit" name="apiLineEdit"/>
-   </item>
-   <item row="2" column="0">
-    <widget class="QLabel" name="configLabel">
-     <property name="text">
-      <string>Config</string>
-     </property>
-     <property name="buddy">
-      <cstring>configComboBox</cstring>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <layout class="QHBoxLayout" name="buttonsHorizontalLayout">
-     <item>
-      <widget class="QComboBox" name="configComboBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="editPushButton">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>50</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Edit</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="addToolButton">
-       <property name="text">
-        <string>+</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="focusLabel">
-     <property name="text">
-      <string>Refresh on focus</string>
-     </property>
-     <property name="buddy">
-      <cstring>focusCheckBox</cstring>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1">
-    <widget class="QCheckBox" name="focusCheckBox"/>
-   </item>
-   <item row="4" column="0">
-    <widget class="QLabel" name="exitLabel">
-     <property name="text">
-      <string>Save on exit</string>
-     </property>
-     <property name="buddy">
-      <cstring>exitCheckBox</cstring>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QCheckBox" name="exitCheckBox"/>
-   </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="prettyLabel">
-     <property name="text">
-      <string>Pretty print config</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="1">
-    <widget class="QCheckBox" name="prettyCheckBox"/>
-   </item>
-   <item row="7" column="1">
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="enabled">
       <bool>false</bool>
      </property>
      <property name="standardButtons">
       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="1">
-    <widget class="QCheckBox" name="emptyDataCheckBox"/>
-   </item>
-   <item row="6" column="0">
-    <widget class="QLabel" name="emptyDataLabel">
-     <property name="text">
-      <string>Empty data folder</string>
      </property>
     </widget>
    </item>
