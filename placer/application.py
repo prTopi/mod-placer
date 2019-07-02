@@ -12,11 +12,11 @@ from placer.settings import SettingsDialog
 from placer.edit import EditModDialog
 from placer.save import SaveWorker
 from placer.update import UpdateWorker
-from placer.install import InstallWorker
+from placer.install import InstallWorker, InstallerManualDialog
 
 
 class ModPlacer(QMainWindow):
-    installHelper = pyqtSignal(object)
+    installHelper = pyqtSignal(str, dict, dict)
 
     def __init__(self):
         super().__init__()
@@ -128,7 +128,7 @@ class ModPlacer(QMainWindow):
                                                "", filters)
         if filePath[0]:
             self._installer = InstallWorker(self._modConf, self._headers,
-                                            filePath[0], self)
+                                            filePath[0])
             self._installer.moveToThread(self._installerThread)
             self._installer.installError.connect(self.displayError)
             self._installer.installer.connect(self.installerUI)
@@ -137,19 +137,22 @@ class ModPlacer(QMainWindow):
             self._installerThread.started.connect(self._installer.prepare)
             self._installerThread.start()
 
-    @pyqtSlot(str, dict)
-    def installerUI(self, name, data):
-        item = self.createItem(name, Qt.Unchecked, data=data)
-        editedItem = self.changeModInfo(item, allowMerge=True)
-        self.installHelper.emit(editedItem)
+    @pyqtSlot(str, dict, int, dict)
+    def installerUI(self, name, data, installer, files):
+        if not installer:
+            dialog = InstallerManualDialog(name, data, self._modConf, self)
+        if dialog.exec_():
+            name, data = dialog.getData()
+        else:
+            name = ""
+        self.installHelper.emit(name, data, files)
 
-    @pyqtSlot(object)
-    def installerFinish(self, item):
-        if item is not None:
-            if not self.Ui.modListWidget.findItems(item.data(Qt.UserRole),
-                                                Qt.MatchExactly):
-                self.Ui.modListWidget.addItem(item)
-                self.saveConfig()
+    @pyqtSlot(str, dict)
+    def installerFinish(self, name, data):
+        if name:
+            self._modDB[name] = data
+            self.addModItem(name, data)
+        self._installer = None
         self._installerThread.quit()
 
     def refreshMods(self, *, save=True):
@@ -203,19 +206,17 @@ class ModPlacer(QMainWindow):
             item = self.createItem(name, check=check, data=data)
             self.Ui.loadListWidget.addItem(item)
 
-    def changeModInfo(self, item, allowMerge=False):
-        self.dialog = EditModDialog(item, self._modConf, allowMerge, self)
-        if self.dialog.exec_():
+    def changeModInfo(self, item):
+        dialog = EditModDialog(item, self._modConf, self)
+        if dialog.exec_():
             oldName = item.data(Qt.UserRole)
-            item = self.dialog.getItem()
+            item = dialog.getItem()
             if oldName != item.data(Qt.UserRole):
-                if not allowMerge:
-                    rename(join(self._modConf["mods"], oldName),
-                           join(self._modConf["mods"], item.data(Qt.UserRole)))
+                rename(join(self._modConf["mods"], oldName),
+                        join(self._modConf["mods"], item.data(Qt.UserRole)))
                 item.setText(item.data(Qt.UserRole))
             item.setToolTip(f"Version: {item.data(Qt.UserRole + 1)}\n"
                             f"Id: {item.data(Qt.UserRole + 2)}")
-            return item
 
     def saveMods(self):
         self.refreshMods()

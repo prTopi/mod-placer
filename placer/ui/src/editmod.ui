@@ -23,19 +23,6 @@
    <bool>true</bool>
   </property>
   <layout class="QFormLayout" name="formLayout">
-   <item row="5" column="1">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="1">
-    <widget class="QLineEdit" name="nameLineEdit"/>
-   </item>
    <item row="0" column="0">
     <widget class="QLabel" name="nameLabel">
      <property name="text">
@@ -46,8 +33,8 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="1">
-    <widget class="QLineEdit" name="versionLineEdit"/>
+   <item row="0" column="1">
+    <widget class="QLineEdit" name="nameLineEdit"/>
    </item>
    <item row="1" column="0">
     <widget class="QLabel" name="versionLabel">
@@ -56,27 +43,61 @@
      </property>
     </widget>
    </item>
-   <item row="2" column="1">
-    <widget class="QLineEdit" name="idLineEdit"/>
+   <item row="1" column="1">
+    <widget class="QLineEdit" name="versionLineEdit"/>
    </item>
    <item row="2" column="0">
-    <widget class="QLabel" name="idLabel">
+    <widget class="QLabel" name="sourceLabel">
+     <property name="text">
+      <string>Source</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QComboBox" name="sourceComboBox">
+     <item>
+      <property name="text">
+       <string>Nexus</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Other</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="dataOneLabel">
      <property name="text">
       <string>Nexus ID</string>
      </property>
     </widget>
    </item>
    <item row="3" column="1">
-    <widget class="QLineEdit" name="gameLineEdit"/>
+    <widget class="QLineEdit" name="dataOneLineEdit"/>
    </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="gameLabel">
+   <item row="4" column="0">
+    <widget class="QLabel" name="dataTwoLabel">
      <property name="text">
       <string>Nexus game</string>
      </property>
     </widget>
    </item>
    <item row="4" column="1">
+    <widget class="QLineEdit" name="dataTwoLineEdit"/>
+   </item>
+   <item row="6" column="1">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

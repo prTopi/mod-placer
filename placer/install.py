@@ -1,4 +1,4 @@
-from os import chdir, mkdir, rmdir, unlink, walk
+from os import chdir, listdir, mkdir, rmdir, unlink, walk
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from re import search, sub
 from shutil import move
@@ -6,22 +6,23 @@ from json import load
 from urllib.request import urlopen, Request
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
+from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot
 from placer import __basedir__
+from placer.ui.installermanual import Ui_InstallerManualDialog
 
 
 class InstallWorker(QObject):
     installError = pyqtSignal(str, str)
-    installer = pyqtSignal(str, dict)
-    installFinished = pyqtSignal(object)
+    installer = pyqtSignal(str, dict, int, dict)
+    installFinished = pyqtSignal(str, dict)
 
-    def __init__(self, config, headers, target, parent):
+    def __init__(self, config, headers, target):
         super().__init__()
         self._config = config
         self._target = target
         self._headers = headers
         self._temp = TemporaryDirectory()
-        parent.installHelper.connect(self.complete)
 
     def prepare(self):
         try:
@@ -29,7 +30,7 @@ class InstallWorker(QObject):
         except ImportError as e:
             self.installError.emit("Import error", e.message)
             self._temp.cleanup()
-            self.installFinished.emit(None)
+            self.installFinished.emit("", {})
             return
 
         name = splitext(basename(self._target))[0]
@@ -41,7 +42,7 @@ class InstallWorker(QObject):
         except ArchiveError as e:
             self.installError.emit("Error extracting archive", e.msg)
             self._temp.cleanup()
-            self.installFinished.emit(None)
+            self.installFinished.emit("", {})
             return
         self.normalizeTree(self._temp.name)
 
@@ -65,17 +66,19 @@ class InstallWorker(QObject):
             except Exception:
                 pass
 
-        self.installer.emit(name, data)
+        installer = 0
+        files = {}
 
-    @pyqtSlot(object)
-    def complete(self, item):
-        if item is not None:
-            name = item.data(Qt.UserRole)
+        self.installer.emit(name, data, installer, files)
+
+    @pyqtSlot(str, dict, dict)
+    def complete(self, name, data, files):
+        if name:
             self.moveTree(self._temp.name, join(self._config["mods"], name))
 
         chdir(__basedir__)
         self._temp.cleanup()
-        self.installFinished.emit(item)
+        self.installFinished.emit(name, data)
 
     def normalizeTree(self, folder, subDir=False):
         for root, dirs, files in walk(folder):
@@ -106,3 +109,30 @@ class InstallWorker(QObject):
 
         if subDir:
             rmdir(srcFolder)
+
+
+class InstallerManualDialog(QDialog):
+    def __init__(self, name, files, modConf, parent):
+        super().__init__(parent)
+        self._name = name
+        self._files = files
+        self._modConf = modConf
+        self.Ui = Ui_InstallerManualDialog()
+        self.Ui.setupUi(self)
+        self.Ui.nameLineEdit.setText(name)
+        self.show()
+
+    def accept(self):
+        name = self.Ui.nameLineEdit.text()
+        if name in listdir(self._modConf["mods"]):
+            msg = "Mod with that name already exists.\n" \
+                "Do you want to merge these files?"
+            cont = QMessageBox.warning(self, "Mod already exists", msg,
+                                        QMessageBox.Yes | QMessageBox.No)
+            if cont == QMessageBox.No:
+                return
+        super().accept()
+
+    def getData(self):
+        self._name = self.Ui.nameLineEdit.text()
+        return self._name, self._files

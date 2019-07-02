@@ -58,46 +58,58 @@ class EditConfigDialog(QDialog):
 
 
 class EditModDialog(QDialog):
-    def __init__(self, item, modConf, allowMerge, parent):
+    def __init__(self, item, modConf, parent):
         super().__init__(parent)
         self._item = item
         self._modConf = modConf
-        self._allowMerge = allowMerge
         self.Ui = Ui_EditModDialog()
         self.Ui.setupUi(self)
         self.Ui.nameLineEdit.setText(item.data(Qt.UserRole))
         self.Ui.versionLineEdit.setText(item.data(Qt.UserRole + 1))
-        nexusInfo = item.data(Qt.UserRole + 2).split("|")
-        self.Ui.idLineEdit.setText(nexusInfo[0])
-        if len(nexusInfo) != 1:
-            self.Ui.gameLineEdit.setText(nexusInfo[1])
-        self.Ui.gameLineEdit.setPlaceholderText(self._modConf["game"])
+        self.Ui.sourceComboBox.setCurrentIndex(
+            self.Ui.sourceComboBox.findText(item.data(Qt.UserRole + 2),
+                                            Qt.MatchExactly))
+        self.Ui.sourceComboBox.currentTextChanged.connect(self.update)
+        self.Ui.dataOneLineEdit.setText(item.data(Qt.UserRole + 3))
+        self.Ui.dataTwoLineEdit.setText(item.data(Qt.UserRole + 4))
         self.show()
 
     def accept(self):
         name = self.Ui.nameLineEdit.text()
         if name in listdir(self._modConf["mods"]):
-            if not self._allowMerge:
-                if name != self._item.data(Qt.UserRole):
-                    QMessageBox.warning(self, "Mod already exists",
-                                        "Mod with that name already exists.",
-                                        QMessageBox.Ok)
-                    return
-            else:
-                msg = "Mod with that name already exists.\n" \
-                    "Do you want to merge these files?"
-                cont = QMessageBox.warning(self, "Mod already exists", msg,
-                                          QMessageBox.Yes | QMessageBox.No)
-                if cont == QMessageBox.No:
-                    return
+            if name != self._item.data(Qt.UserRole):
+                QMessageBox.warning(self, "Mod already exists",
+                                    "Mod with that name already exists.",
+                                    QMessageBox.Ok)
+                return
         super().accept()
+
+    def update(self, text):
+        self.Ui.dataOneLabel.show()
+        self.Ui.dataOneLabel.setText("")
+        self.Ui.dataOneLineEdit.show()
+        self.Ui.dataOneLineEdit.clear()
+        self.Ui.dataOneLineEdit.setPlaceholderText("")
+        self.Ui.dataTwoLabel.hide()
+        self.Ui.dataTwoLabel.setText("")
+        self.Ui.dataTwoLineEdit.hide()
+        self.Ui.dataTwoLineEdit.clear()
+        self.Ui.dataTwoLineEdit.setPlaceholderText("")
+        if text == "Nexus":
+            self.Ui.dataOneLabel.setText("Nexus ID")
+            self.Ui.dataTwoLabel.show()
+            self.Ui.dataTwoLabel.setText("Nexus Game")
+            self.Ui.dataTwoLineEdit.show()
+            self.Ui.dataTwoLineEdit.setPlaceholderText(self._modConf["game"])
+        else:
+            self.Ui.dataOneLabel.hide()
+            self.Ui.dataOneLineEdit.hide()
 
     def getItem(self):
         self._item.setData(Qt.UserRole, self.Ui.nameLineEdit.text())
         self._item.setData(Qt.UserRole + 1, self.Ui.versionLineEdit.text())
-        nexusInfo = self.Ui.idLineEdit.text()
-        game = self.Ui.gameLineEdit.text()
-        if game:
-            nexusInfo = f"{nexusInfo}|{game}"
-        self._item.setData(Qt.UserRole + 2, nexusInfo)
+        self._item.setData(Qt.UserRole + 2,
+                           self.Ui.sourceComboBox.currentText())
+        self._item.setData(Qt.UserRole + 3, self.Ui.dataOneLineEdit.text())
+        self._item.setData(Qt.UserRole + 4, self.Ui.dataTwoLineEdit.text())
         return self._item
