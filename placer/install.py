@@ -6,64 +6,75 @@ from json import load
 from urllib.request import urlopen, Request
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot
 from placer import __basedir__
 
 
 class InstallWorker(QObject):
     installError = pyqtSignal(str, str)
-    finished = pyqtSignal(str, dict)
+    installer = pyqtSignal(str, dict)
+    finished = pyqtSignal(object)
 
-    def __init__(self, config, headers, target):
+    def __init__(self, config, headers, target, parent):
         super().__init__()
         self._config = config
         self._target = target
         self._headers = headers
+        self._temp = TemporaryDirectory()
+        parent.installHelper.connect(self.complete)
 
-    def install(self):
+    def prepare(self):
         try:
             from libarchive import extract_file, ArchiveError
         except ImportError as e:
             self.installError.emit("Import error", e.message)
-            self.finished.emit("", {})
+            self._temp.cleanup()
+            self.finished.emit(None)
             return
 
         name = splitext(basename(self._target))[0]
         data = {"version": "", "id": ""}
 
-        with TemporaryDirectory() as root:
-            chdir(root)
-            try:
-                extract_file(self._target)
-            except ArchiveError as e:
-                self.installError.emit("Error extracting archive", e.msg)
-                self.finished.emit("", {})
-                return
-            self.normalizeTree(root)
+        chdir(self._temp.name)
+        try:
+            extract_file(self._target)
+        except ArchiveError as e:
+            self.installError.emit("Error extracting archive", e.msg)
+            self._temp.cleanup()
+            self.finished.emit(None)
+            return
+        self.normalizeTree(self._temp.name)
 
+        try:
+            nexusInfo = search(r"-(\d+)(.+)?$", name)
+            name = sub(r"-(\d+)(.+)?$", "", name)
+            data["id"] = nexusInfo[1]
+            data["version"] = nexusInfo[2].replace("-", ".")[1:]
+        except IndexError:
+            pass
+
+        if self._headers and data["id"]:
             try:
-                nexusInfo = search(r"-(\d+)(.+)?$", name)
-                name = sub(r"-(\d+)(.+)?$", "", name)
-                data["id"] = nexusInfo[1]
-                data["version"] = nexusInfo[2].replace("-", ".")[1:]
-            except IndexError:
+                url = "https://api.nexusmods.com/v1/games/" \
+                    f"{self._config['game']}/mods/{data['id']}.json"
+                req = Request(url, headers=self._headers)
+                with urlopen(req) as site:
+                    page = load(site)
+                name = page["name"]
+                data["version"] = page["version"]
+            except Exception:
                 pass
 
-            if self._headers and data["id"]:
-                try:
-                    url = "https://api.nexusmods.com/v1/games/" \
-                        f"{self._config['game']}/mods/{data['id']}.json"
-                    req = Request(url, headers=self._headers)
-                    with urlopen(req) as site:
-                        page = load(site)
-                    name = page["name"]
-                    data["version"] = page["version"]
-                except Exception:
-                    pass
+        self.installer.emit(name, data)
 
-            self.moveTree(root, join(self._config["mods"], name))
-            chdir(__basedir__)
-        self.finished.emit(name, data)
+    @pyqtSlot(object)
+    def complete(self, item):
+        name = item.data(Qt.UserRole)
+        self.moveTree(self._temp.name, join(self._config["mods"], name))
+
+        chdir(__basedir__)
+        self._temp.cleanup()
+        self.finished.emit(item)
 
     def normalizeTree(self, folder, subDir=False):
         for root, dirs, files in walk(folder):

@@ -2,6 +2,7 @@ from os import listdir, unlink
 from json import load, dump
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import Qt
+from placer import __basedir__
 from placer.ui.config import Ui_ConfigDialog
 from placer.edit import EditConfigDialog
 
@@ -30,9 +31,9 @@ class SettingsDialog(QDialog):
 
     def refresh(self, config):
         self.Ui.configComboBox.clear()
-        for file in listdir():
-            if file.endswith(".json"):
-                self.Ui.configComboBox.addItem(file)
+        for conf in listdir(__basedir__):
+            if conf.endswith(".json"):
+                self.Ui.configComboBox.addItem(conf)
         if config:
             if self.Ui.configComboBox.findText(config, Qt.MatchExactly) != -1:
                 self.Ui.configComboBox.setCurrentIndex(
@@ -41,7 +42,7 @@ class SettingsDialog(QDialog):
                 self.Ui.configComboBox.setCurrentIndex(0)
 
     def editConfig(self, *, name=""):
-        if name in listdir():
+        if name in listdir(__basedir__):
             with open(name) as f:
                 config = load(f)
         else:
@@ -64,7 +65,7 @@ class SettingsDialog(QDialog):
             with open(name, "w") as f:
                 dump(config, f)
             if oldName != name:
-                if oldName in listdir():
+                if oldName in listdir(__basedir__):
                     unlink(oldName)
         self.refresh(name)
 

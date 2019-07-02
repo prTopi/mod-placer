@@ -5,7 +5,7 @@ from configparser import ConfigParser
 from platform import system, release, python_version
 from PyQt5.QtWidgets import (QMainWindow, QListWidgetItem, QMessageBox,
                              QFileDialog)
-from PyQt5.QtCore import Qt, QEvent, QThread, pyqtSlot
+from PyQt5.QtCore import Qt, QEvent, QThread, pyqtSignal, pyqtSlot
 from placer import __basedir__, __version__
 from placer.ui.mainwindow import Ui_MainWindow
 from placer.settings import SettingsDialog
@@ -16,6 +16,8 @@ from placer.install import InstallWorker
 
 
 class ModPlacer(QMainWindow):
+    installHelper = pyqtSignal(object)
+
     def __init__(self):
         super().__init__()
         self._initialized = False
@@ -126,27 +128,31 @@ class ModPlacer(QMainWindow):
                                                "", filters)
         if filePath[0]:
             self._installer = InstallWorker(self._modConf, self._headers,
-                                            filePath[0])
+                                            filePath[0], self)
             self._installer.moveToThread(self._installerThread)
             self._installer.installError.connect(self.displayError)
-            self._installer.finished.connect(self.installFinish)
-            self._installerThread.started.connect(self._installer.install)
+            self._installer.installer.connect(self.installerUI)
+            self._installer.finished.connect(self.installerFinish)
+            self.installHelper.connect(self._installer.complete)
+            self._installerThread.started.connect(self._installer.prepare)
             self._installerThread.start()
 
     @pyqtSlot(str, dict)
-    def installFinish(self, name, data):
-        if len(name):
-            found = self.Ui.modListWidget.findItems(name, Qt.MatchExactly)
-            if found:
-                item = found[0]
-            else:
-                item = self.createItem(name, Qt.Unchecked, data=data)
-                self.Ui.modListWidget.addItem(item)
-            self.changeModInfo(item)
+    def installerUI(self, name, data):
+        item = self.createItem(name, Qt.Unchecked, data=data)
+        self.changeModInfo(item, allowMerge=True)
+        self.installHelper.emit(item)
+
+    @pyqtSlot(object)
+    def installerFinish(self, item):
+        if not self.Ui.modListWidget.findItems(item.data(Qt.UserRole),
+                                               Qt.MatchExactly):
+            self.Ui.modListWidget.addItem(item)
         self._installerThread.quit()
 
     def refreshMods(self, *, save=True):
-        if (isdir(self._modConf["data"]) and isdir(self._modConf["mods"]) or
+        if ((isdir(self._modConf["data"]) and isdir(self._modConf["mods"])) or
+                not self._installerThread.isRunning() or
                 not self._saverThread.isRunning()):
             self.Ui.savePushButton.setEnabled(True)
         else:
@@ -195,19 +201,16 @@ class ModPlacer(QMainWindow):
             item = self.createItem(name, check=check, data=data)
             self.Ui.loadListWidget.addItem(item)
 
-    def changeModInfo(self, item):
-        self.dialog = EditModDialog(item, self._modConf["game"], self)
+    def changeModInfo(self, item, allowMerge=False):
+        self.dialog = EditModDialog(item, self._modConf, allowMerge, self)
         if self.dialog.exec_():
             oldName = item.data(Qt.UserRole)
             item = self.dialog.getItem()
             if oldName != item.data(Qt.UserRole):
-                if item.data(Qt.UserRole) in listdir(self._modConf["mods"]):
-                    QMessageBox.warning(self, "Warning", "Mod with that name "
-                                        "already exists.", QMessageBox.Ok)
-                else:
+                if not allowMerge:
                     rename(join(self._modConf["mods"], oldName),
                            join(self._modConf["mods"], item.data(Qt.UserRole)))
-                    item.setText(item.data(Qt.UserRole))
+                item.setText(item.data(Qt.UserRole))
             item.setToolTip(f"Version: {item.data(Qt.UserRole + 1)}\n"
                             f"Id: {item.data(Qt.UserRole + 2)}")
 

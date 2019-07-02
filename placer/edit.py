@@ -1,6 +1,7 @@
 from os import listdir
 from PyQt5.QtWidgets import QDialog, QMessageBox, QFileDialog
 from PyQt5.QtCore import Qt
+from placer import __basedir__
 from placer.ui.editconfig import Ui_EditConfigDialog
 from placer.ui.editmod import Ui_EditModDialog
 
@@ -40,7 +41,7 @@ class EditConfigDialog(QDialog):
 
     def accept(self):
         name = self.Ui.nameLineEdit.text()
-        if name != self._name and name + ".json" in listdir():
+        if name != self._name and name + ".json" in listdir(__basedir__):
             QMessageBox.warning(self, "File already exists",
                                 "Mod config with that name already exists.",
                                 QMessageBox.Ok)
@@ -57,9 +58,11 @@ class EditConfigDialog(QDialog):
 
 
 class EditModDialog(QDialog):
-    def __init__(self, item, game, parent):
+    def __init__(self, item, modConf, allowMerge, parent):
         super().__init__(parent)
         self._item = item
+        self._modConf = modConf
+        self._allowMerge = allowMerge
         self.Ui = Ui_EditModDialog()
         self.Ui.setupUi(self)
         self.Ui.nameLineEdit.setText(item.data(Qt.UserRole))
@@ -68,8 +71,26 @@ class EditModDialog(QDialog):
         self.Ui.idLineEdit.setText(nexusInfo[0])
         if len(nexusInfo) != 1:
             self.Ui.gameLineEdit.setText(nexusInfo[1])
-        self.Ui.gameLineEdit.setPlaceholderText(game)
+        self.Ui.gameLineEdit.setPlaceholderText(self._modConf["game"])
         self.show()
+
+    def accept(self):
+        name = self.Ui.nameLineEdit.text()
+        if (name != self._item.data(Qt.UserRole) and
+                name in listdir(self._modConf["mods"])):
+            if not self._allowMerge:
+                    QMessageBox.warning(self, "Mod already exists",
+                                        "Mod with that name already exists.",
+                                        QMessageBox.Ok)
+                    return
+            else:
+                msg = "Mod with that name already exists.\n" \
+                    "Do you want to merge these files?"
+                cont = QMessageBox.warning(self, "Mod already exists", msg,
+                                          QMessageBox.Yes | QMessageBox.No)
+                if cont == QMessageBox.No:
+                    return
+        super().accept()
 
     def getItem(self):
         self._item.setData(Qt.UserRole, self.Ui.nameLineEdit.text())
