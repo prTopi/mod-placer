@@ -27,12 +27,18 @@ class ModPlacer(QMainWindow):
         self._config["Placer"].setdefault("saveOnExit", "True")
         self._config["Placer"].setdefault("refreshOnFocus", "True")
         self._config["Placer"].setdefault("prettyPrint", "False")
-        self._config["Placer"].setdefault("emptyData", "False")
+        self._config["Placer"].setdefault("emptyData", "True")
         self._config["Nexus"].setdefault("api", "")
-        # Create blank QThreads so that we can use self._thread.isRunning()
-        self._saver = QThread()
-        self._updater = QThread()
-        self._installer = QThread()
+
+        # Init all threads the workers will use
+        self._saver = None
+        self._saverThread = QThread(self)
+        self._saverThread.finished.connect(self.refreshMods)
+        self._updater = None
+        self._updaterThread = QThread(self)
+        self._installer = None
+        self._installerThread = QThread(self)
+
         # UI is located in a different file, created with QtDesigner
         self.Ui = Ui_MainWindow()
         self.Ui.setupUi(self)
@@ -51,6 +57,7 @@ class ModPlacer(QMainWindow):
         self.Ui.modListWidget.addAction(self.Ui.actionCheckForUpdates)
         self.Ui.savePushButton.clicked.connect(self.saveMods)
         self.show()
+
         self.loadConfig(config=self._config["Placer"]["config"])
 
     def loadConfig(self, *, config=""):
@@ -119,10 +126,12 @@ class ModPlacer(QMainWindow):
                                                "", filters)
         if filePath[0]:
             self._installer = InstallThread(self._modConf, self._headers,
-                                            filePath[0], self)
+                                            filePath[0])
+            self._installer.moveToThread(self._installerThread)
             self._installer.installError.connect(self.displayError)
-            self._installer.finishInstall.connect(self.installFinish)
-            self._installer.start()
+            self._installer.finished.connect(self.installFinish)
+            self._installerThread.started.connect(self._installer.install)
+            self._installerThread.start()
 
     @pyqtSlot(str, dict)
     def installFinish(self, name, data):
@@ -134,9 +143,11 @@ class ModPlacer(QMainWindow):
                 item = self.createItem(name, Qt.Unchecked, data=data)
                 self.Ui.modListWidget.addItem(item)
             self.changeModInfo(item)
+        self._installerThread.quit()
 
     def refreshMods(self, *, save=True):
-        if isdir(self._modConf["data"]) and isdir(self._modConf["mods"]):
+        if (isdir(self._modConf["data"]) and isdir(self._modConf["mods"]) or
+                not self._saverThread.isRunning()):
             self.Ui.savePushButton.setEnabled(True)
         else:
             self.Ui.savePushButton.setEnabled(False)
@@ -217,10 +228,11 @@ class ModPlacer(QMainWindow):
             plugin = self.Ui.loadListWidget.item(index)
             plugins[plugin.data(Qt.UserRole)] = plugin.checkState()
 
-        self._saver = SaveThread(self._config, self._modConf, mods, plugins,
-                                 self)
-        self._saver.finished.connect(self.refreshMods)
-        self._saver.start()
+        self._saver = SaveThread(self._config, self._modConf, mods, plugins)
+        self._saver.moveToThread(self._saverThread)
+        self._saver.finished.connect(self._saverThread.quit)
+        self._saverThread.started.connect(self._saver.save)
+        self._saverThread.start()
 
     def saveConfig(self):
         if (not isdir(self._modConf["data"]) and
@@ -266,19 +278,24 @@ class ModPlacer(QMainWindow):
         for index in range(self.Ui.modListWidget.count()):
             mod = self.Ui.modListWidget.item(index)
             mods.append(mod)
+
         self._updater = UpdateThread(mods, self._modConf["game"],
-                                     self._headers, self)
-        self._updater.signalFinished.connect(self.finishUpdate)
-        self._updater.start()
+                                     self._headers)
+        self._updater.moveToThread(self._updaterThread)
+        self._updater.finished.connect(self.finishUpdate)
+        self._updaterThread.started.connect(self._updater.fetchUpdates)
+        self._updaterThread.start()
 
     @pyqtSlot(str)
     def finishUpdate(self, updates):
         self.Ui.actionCheckForUpdates.setEnabled(True)
         QMessageBox.information(self, "Mod updates", updates, QMessageBox.Ok)
+        self._updaterThread.quit()
 
     def closeEvent(self, event):
-        if (self._saver.isRunning() or self._updater.isRunning() or
-                self._installer.isRunning()):
+        if (self._saverThread.isRunning() or
+                self._updaterThread.isRunning() or
+                self._installerThread.isRunning()):
             msg = "Worker thread(s) are currently running.\n" \
                 "Are you sure you want to exit?"
             dial = QMessageBox.question(self, "Are you sure?", msg,

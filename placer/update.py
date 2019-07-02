@@ -1,20 +1,20 @@
 from json import load
 from threading import Thread
 from urllib.request import urlopen, Request
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QObject, pyqtSignal
 
 
-class UpdateThread(QThread):
-    signalFinished = pyqtSignal(str)
+class UpdateThread(QObject):
+    finished = pyqtSignal(str)
 
-    def __init__(self, mods, game, headers, parent):
-        super().__init__(parent)
+    def __init__(self, mods, game, headers):
+        super().__init__()
         self._mods = mods
         self._game = game
         self._headers = headers
         self._updates = ""
 
-    def run(self):
+    def fetchUpdates(self):
         threads = [Thread(target=self.fetchInfo, args=(mod,))
                    for mod in self._mods]
         for thread in threads:
@@ -23,7 +23,7 @@ class UpdateThread(QThread):
             thread.join()
         if not self._updates:
             self._updates = "No mod updates found."
-        self.signalFinished.emit(self._updates)
+        self.finished.emit(self._updates)
 
     def fetchInfo(self, mod):
         if mod.data(Qt.UserRole + 2) == "":

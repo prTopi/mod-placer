@@ -5,15 +5,15 @@ from shutil import copy2, rmtree
 from json import load
 from urllib.request import urlopen, Request
 from contextlib import contextmanager
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal
 
 
-class InstallThread(QThread):
+class InstallThread(QObject):
     installError = pyqtSignal(str, str)
-    finishInstall = pyqtSignal(str, dict)
+    finished = pyqtSignal(str, dict)
 
-    def __init__(self, config, headers, target, parent):
-        super().__init__(parent)
+    def __init__(self, config, headers, target):
+        super().__init__()
         self._config = config
         self._target = target
         self._headers = headers
@@ -32,12 +32,12 @@ class InstallThread(QThread):
                 rmtree(".tmp")
             chdir(start)
 
-    def run(self):
+    def install(self):
         try:
             from libarchive import extract_fd, ArchiveError
         except ImportError as e:
             self.installError.emit("Import error", e.message)
-            self.finishInstall.emit("", {})
+            self.finished.emit("", {})
             return
         name = splitext(basename(self._target))[0]
         data = {"version": "", "id": ""}
@@ -47,7 +47,7 @@ class InstallThread(QThread):
                     extract_fd(f.fileno())
             except ArchiveError as e:
                 self.installError.emit("Error extracting archive", e.msg)
-                self.finishInstall.emit("", {})
+                self.finished.emit("", {})
                 return
             self.normalizeTree(getcwd())
             try:
@@ -69,7 +69,7 @@ class InstallThread(QThread):
                 except Exception:
                     pass
             self.moveTree(getcwd(), join(self._config["mods"], name))
-        self.finishInstall.emit(name, data)
+        self.finished.emit(name, data)
 
     def normalizeTree(self, folder):
         for item in listdir(folder):

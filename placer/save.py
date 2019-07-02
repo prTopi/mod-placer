@@ -1,18 +1,20 @@
 from os import makedirs, listdir, symlink, unlink, rmdir, utime
 from os.path import dirname, isdir, isfile, islink, join
 from shutil import copy2
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QObject, pyqtSignal
 
 
-class SaveThread(QThread):
-    def __init__(self, config, modConf, mods, plugins, parent):
-        super().__init__(parent)
+class SaveThread(QObject):
+    finished = pyqtSignal()
+
+    def __init__(self, config, modConf, mods, plugins):
+        super().__init__()
         self._config = config
         self._modConf = modConf
         self._mods = mods
         self._plugins = plugins
 
-    def run(self):
+    def save(self):
         if self._config["Placer"].getboolean("emptyData"):
             self.copyTree(self._modConf["data"],
                           join(self._modConf["mods"], "Data Backup"),
@@ -40,6 +42,7 @@ class SaveThread(QThread):
                 for plugin in self._plugins:
                     if self._plugins[plugin]:
                         f.write(f"{self._modConf['prefix']}{plugin}\n")
+        self.finished.emit()
 
     def copyTree(self, srcFolder, dstFolder, rm=None):
         for item in listdir(srcFolder):
