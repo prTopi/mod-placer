@@ -29,12 +29,12 @@ class SaveWorker(QObject):
             self.copyTree(join(self._modConf["mods"], mod),
                           self._modConf["data"], symlink)
 
-        newTime = 978300000
+        newTime = 946677600
         for root, dirs, files in walk(self._modConf["data"]):
             for name in files:
                 if name.lower().endswith(".bsa"):
                     try:
-                        utime(root, name), (newTime, newTime))
+                        utime(join(root, name), (newTime, newTime))
                     except FileNotFoundError:
                         pass
 
