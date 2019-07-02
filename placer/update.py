@@ -4,7 +4,7 @@ from urllib.request import urlopen, Request
 from PyQt5.QtCore import Qt, QObject, pyqtSignal
 
 
-class UpdateThread(QObject):
+class UpdateWorker(QObject):
     finished = pyqtSignal(str)
 
     def __init__(self, mods, game, headers):

@@ -10,9 +10,9 @@ from placer import __version__
 from placer.ui.mainwindow import Ui_MainWindow
 from placer.settings import SettingsDialog
 from placer.edit import EditModDialog
-from placer.save import SaveThread
-from placer.update import UpdateThread
-from placer.install import InstallThread
+from placer.save import SaveWorker
+from placer.update import UpdateWorker
+from placer.install import InstallWorker
 
 
 class ModPlacer(QMainWindow):
@@ -127,7 +127,7 @@ class ModPlacer(QMainWindow):
         filePath = QFileDialog.getOpenFileName(self, "Select Zip",
                                                "", filters)
         if filePath[0]:
-            self._installer = InstallThread(self._modConf, self._headers,
+            self._installer = InstallWorker(self._modConf, self._headers,
                                             filePath[0])
             self._installer.moveToThread(self._installerThread)
             self._installer.installError.connect(self.displayError)
@@ -230,7 +230,7 @@ class ModPlacer(QMainWindow):
             plugin = self.Ui.loadListWidget.item(index)
             plugins[plugin.data(Qt.UserRole)] = plugin.checkState()
 
-        self._saver = SaveThread(self._config, self._modConf, mods, plugins)
+        self._saver = SaveWorker(self._config, self._modConf, mods, plugins)
         self._saver.moveToThread(self._saverThread)
         self._saver.finished.connect(self._saverThread.quit)
         self._saverThread.started.connect(self._saver.save)
@@ -281,7 +281,7 @@ class ModPlacer(QMainWindow):
             mod = self.Ui.modListWidget.item(index)
             mods.append(mod)
 
-        self._updater = UpdateThread(mods, self._modConf["game"],
+        self._updater = UpdateWorker(mods, self._modConf["game"],
                                      self._headers)
         self._updater.moveToThread(self._updaterThread)
         self._updater.finished.connect(self.finishUpdate)

@@ -3,7 +3,7 @@ from os.path import isdir, islink, join
 from PyQt5.QtCore import QObject, pyqtSignal
 
 
-class SaveThread(QObject):
+class SaveWorker(QObject):
     finished = pyqtSignal()
 
     def __init__(self, config, modConf, mods, plugins):

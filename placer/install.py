@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from PyQt5.QtCore import QObject, pyqtSignal
 
 
-class InstallThread(QObject):
+class InstallWorker(QObject):
     installError = pyqtSignal(str, str)
     finished = pyqtSignal(str, dict)
 
