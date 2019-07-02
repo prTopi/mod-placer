@@ -2,9 +2,10 @@
 
 # Form implementation generated from reading ui file 'src/editmod.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.2
+# Created by: PyQt5 UI code generator 5.12.3
 #
 # WARNING! All changes made in this file will be lost!
+
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -62,5 +63,3 @@ class Ui_EditModDialog(object):
         self.versionLabel.setText(_translate("EditModDialog", "Version"))
         self.idLabel.setText(_translate("EditModDialog", "Nexus ID"))
         self.gameLabel.setText(_translate("EditModDialog", "Nexus game"))
-
-

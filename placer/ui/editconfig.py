@@ -2,9 +2,10 @@
 
 # Form implementation generated from reading ui file 'src/editconfig.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.2
+# Created by: PyQt5 UI code generator 5.12.3
 #
 # WARNING! All changes made in this file will be lost!
+
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -102,5 +103,3 @@ class Ui_EditConfigDialog(object):
         self.pluginsLabel.setText(_translate("EditConfigDialog", "Plugins file"))
         self.pluginsToolButton.setText(_translate("EditConfigDialog", "..."))
         self.prefixLabel.setText(_translate("EditConfigDialog", "Plugins line prefix"))
-
-

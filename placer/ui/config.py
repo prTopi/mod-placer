@@ -2,9 +2,10 @@
 
 # Form implementation generated from reading ui file 'src/config.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.2
+# Created by: PyQt5 UI code generator 5.12.3
 #
 # WARNING! All changes made in this file will be lost!
+
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -12,13 +13,13 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_ConfigDialog(object):
     def setupUi(self, ConfigDialog):
         ConfigDialog.setObjectName("ConfigDialog")
-        ConfigDialog.resize(400, 190)
+        ConfigDialog.resize(400, 250)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(ConfigDialog.sizePolicy().hasHeightForWidth())
         ConfigDialog.setSizePolicy(sizePolicy)
-        ConfigDialog.setMaximumSize(QtCore.QSize(16777215, 190))
+        ConfigDialog.setMaximumSize(QtCore.QSize(16777215, 250))
         ConfigDialog.setModal(True)
         self.formLayout = QtWidgets.QFormLayout(ConfigDialog)
         self.formLayout.setObjectName("formLayout")
@@ -62,17 +63,23 @@ class Ui_ConfigDialog(object):
         self.exitCheckBox = QtWidgets.QCheckBox(ConfigDialog)
         self.exitCheckBox.setObjectName("exitCheckBox")
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.exitCheckBox)
+        self.prettyLabel = QtWidgets.QLabel(ConfigDialog)
+        self.prettyLabel.setObjectName("prettyLabel")
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.prettyLabel)
+        self.prettyCheckBox = QtWidgets.QCheckBox(ConfigDialog)
+        self.prettyCheckBox.setObjectName("prettyCheckBox")
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.prettyCheckBox)
         self.buttonBox = QtWidgets.QDialogButtonBox(ConfigDialog)
         self.buttonBox.setEnabled(False)
         self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
-        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.buttonBox)
-        self.prettyCheckBox = QtWidgets.QCheckBox(ConfigDialog)
-        self.prettyCheckBox.setObjectName("prettyCheckBox")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.prettyCheckBox)
-        self.prettyLabel = QtWidgets.QLabel(ConfigDialog)
-        self.prettyLabel.setObjectName("prettyLabel")
-        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.prettyLabel)
+        self.formLayout.setWidget(7, QtWidgets.QFormLayout.FieldRole, self.buttonBox)
+        self.emptyDataCheckBox = QtWidgets.QCheckBox(ConfigDialog)
+        self.emptyDataCheckBox.setObjectName("emptyDataCheckBox")
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.emptyDataCheckBox)
+        self.emptyDataLabel = QtWidgets.QLabel(ConfigDialog)
+        self.emptyDataLabel.setObjectName("emptyDataLabel")
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole, self.emptyDataLabel)
         self.apiLabel.setBuddy(self.apiLineEdit)
         self.configLabel.setBuddy(self.configComboBox)
         self.focusLabel.setBuddy(self.focusCheckBox)
@@ -93,5 +100,4 @@ class Ui_ConfigDialog(object):
         self.focusLabel.setText(_translate("ConfigDialog", "Refresh on focus"))
         self.exitLabel.setText(_translate("ConfigDialog", "Save on exit"))
         self.prettyLabel.setText(_translate("ConfigDialog", "Pretty print config"))
-
-
+        self.emptyDataLabel.setText(_translate("ConfigDialog", "Empty data folder"))

@@ -2,9 +2,10 @@
 
 # Form implementation generated from reading ui file 'src/mainwindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.2
+# Created by: PyQt5 UI code generator 5.12.3
 #
 # WARNING! All changes made in this file will be lost!
+
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -112,5 +113,3 @@ class Ui_MainWindow(object):
         self.actionQuit.setShortcut(_translate("MainWindow", "Ctrl+Q"))
         self.actionInstallMod.setText(_translate("MainWindow", "Install mod..."))
         self.actionEditMod.setText(_translate("MainWindow", "Edit mod"))
-
-
