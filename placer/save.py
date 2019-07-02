@@ -5,7 +5,7 @@ from PyQt5.QtCore import QThread
 
 
 class SaveThread(QThread):
-    def __init__(self, config, modConf mods, plugins, parent):
+    def __init__(self, config, modConf, mods, plugins, parent):
         super().__init__(parent)
         self._config = config
         self._modConf = modConf
@@ -15,17 +15,17 @@ class SaveThread(QThread):
     def run(self):
         if self._config["Placer"].getboolean("emptyData"):
             self.copyTree(self._modConf["data"],
-                        join(self._modConf["mods"], "Data Backup"),
-                        rm=False)
+                          join(self._modConf["mods"], "Data Backup"),
+                          rm=False)
         for mod in self._mods:
             self.copyTree(join(self._modConf["mods"], mod),
                           self._modConf["data"])
         newTime = 978300000
         for file in listdir(self._modConf["data"]):
-            if file.endswith(".bsa"):
+            if file.lower().endswith(".bsa"):
                 try:
                     utime(join(self._modConf["data"], file),
-                        (newTime, newTime))
+                          (newTime, newTime))
                 except FileNotFoundError:
                     pass
         for plugin in self._plugins:

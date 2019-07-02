@@ -1,6 +1,5 @@
 from os import listdir
-from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QLabel, QVBoxLayout,
-                             QLineEdit, QMessageBox, QFileDialog)
+from PyQt5.QtWidgets import QDialog, QMessageBox, QFileDialog
 from PyQt5.QtCore import Qt
 from placer.ui.editconfig import Ui_EditConfigDialog
 from placer.ui.editmod import Ui_EditModDialog

@@ -1,4 +1,4 @@
-from os import listdir, rename, utime
+from os import listdir, rename
 from os.path import dirname, isdir, isfile, join, realpath
 from json import load, dump
 from configparser import ConfigParser
@@ -65,6 +65,7 @@ class ModPlacer(QMainWindow):
                 self._config = dialog.getConfig()
             else:
                 return
+
         config = self._config["Placer"]["config"]
         try:
             with open(self._config["Placer"]["config"]) as f:
@@ -72,6 +73,8 @@ class ModPlacer(QMainWindow):
         except FileNotFoundError:
             self.loadConfig()
             return
+
+        self.setWindowTitle(config[:-5] + " - Mod Placer")
         self._modConf.setdefault("game", config[:-5])
         self._modConf.setdefault("data", "Data")
         self._modConf.setdefault("mods", "mods")
@@ -84,18 +87,17 @@ class ModPlacer(QMainWindow):
                 self._modDB = load(f)
         except FileNotFoundError:
             self._modDB = {}
-        self._data = self._modConf.get("data", "Data")
-        self._mods = self._modConf.get("mods", "mods")
-        self.setWindowTitle(config[:-5] + " - Mod Placer")
+
         if self._config["Nexus"]["api"]:
             self.Ui.actionCheckForUpdates.setEnabled(True)
             self._headers = {"User-Agent": f"ModPlacer/{__version__} "
-                            f"({system()} {release()}) "
-                            f"Python/{python_version()}",
-                            "apikey": self._config["Nexus"]["api"]}
+                             f"({system()} {release()}) "
+                             f"Python/{python_version()}",
+                             "apikey": self._config["Nexus"]["api"]}
         else:
             self.Ui.actionCheckForUpdates.setEnabled(False)
             self._headers = {}
+
         self._initialized = True
         self.Ui.actionInstallMod.setEnabled(False)
         self.Ui.actionRefresh.setEnabled(True)
@@ -111,6 +113,7 @@ class ModPlacer(QMainWindow):
     def installMod(self):
         if self._installer.isRunning():
             return
+
         filters = "Archives (*.zip *.rar *.7z)"
         filePath = QFileDialog.getOpenFileName(self, "Select Zip",
                                                "", filters)
@@ -138,6 +141,7 @@ class ModPlacer(QMainWindow):
         else:
             self.Ui.savePushButton.setEnabled(False)
             return
+
         if save:
             self.saveConfig()
         self.Ui.modListWidget.clear()
@@ -207,10 +211,12 @@ class ModPlacer(QMainWindow):
             mod = self.Ui.modListWidget.item(index)
             if mod.checkState():
                 mods.append(mod.data(Qt.UserRole))
+
         plugins = {}
         for index in range(self.Ui.loadListWidget.count()):
             plugin = self.Ui.loadListWidget.item(index)
             plugins[plugin.data(Qt.UserRole)] = plugin.checkState()
+
         self._saver = SaveThread(self._config, self._modConf, mods, plugins,
                                  self)
         self._saver.finished.connect(self.refreshMods)
@@ -230,23 +236,28 @@ class ModPlacer(QMainWindow):
                                                 mod.checkState())
             self._modDB[name] = {"version": mod.data(Qt.UserRole + 1),
                                  "id": mod.data(Qt.UserRole + 2)}
+
         self._modConf["LoadOrder"] = {}
         for index in range(self.Ui.loadListWidget.count()):
             plugin = self.Ui.loadListWidget.item(index)
             self._modConf["LoadOrder"][index] = [plugin.data(Qt.UserRole),
-                                              plugin.checkState()]
+                                                 plugin.checkState()]
+
         with open(join(dirname(realpath(__file__)), "..",
                        self._config["Placer"]["config"]), "w") as f:
             if self._config["Placer"].getboolean("prettyPrint"):
                 dump(self._modConf, f, indent=4)
             else:
                 dump(self._modConf, f, separators=(",", ":"))
+
         with open(join(self._modConf["mods"], "database.json"), "w") as f:
             if self._config["Placer"].getboolean("prettyPrint"):
                 dump(self._modDB, f, indent=4)
             else:
                 dump(self._modDB, f, separators=(",", ":"))
-        with open(join(dirname(realpath(__file__)), "..", "placer.ini"), "w") as f:
+
+        with open(join(dirname(realpath(__file__)), "..",
+                       "placer.ini"), "w") as f:
             self._config.write(f)
 
     def checkUpdates(self):
@@ -255,7 +266,8 @@ class ModPlacer(QMainWindow):
         for index in range(self.Ui.modListWidget.count()):
             mod = self.Ui.modListWidget.item(index)
             mods.append(mod)
-        self._updater = UpdateThread(mods, self._modConf["game"], self._headers, self)
+        self._updater = UpdateThread(mods, self._modConf["game"],
+                                     self._headers, self)
         self._updater.signalFinished.connect(self.finishUpdate)
         self._updater.start()
 
@@ -274,9 +286,11 @@ class ModPlacer(QMainWindow):
             if dial == QMessageBox.No:
                 event.ignore()
                 return
+
         if (self._config["Placer"].getboolean("saveOnExit") and
                 self._initialized):
             self.saveConfig()
+
         super().closeEvent(event)
 
     def event(self, event):
@@ -285,4 +299,5 @@ class ModPlacer(QMainWindow):
                     self._config["Placer"].getboolean("refreshOnFocus") and
                     self._initialized):
                 self.refreshMods()
+
         return super().event(event)

@@ -36,7 +36,7 @@ class InstallThread(QThread):
         try:
             from libarchive import extract_fd, ArchiveError
         except ImportError as e:
-            installError.emit("Import error", e.message)
+            self.installError.emit("Import error", e.message)
             self.finishInstall.emit("", {})
             return
         name = splitext(basename(self._target))[0]
@@ -44,15 +44,15 @@ class InstallThread(QThread):
         with self.tmpdir():
             try:
                 with open(self._target, "r+b") as f:
-                        extract_fd(f.fileno())
+                    extract_fd(f.fileno())
             except ArchiveError as e:
                 self.installError.emit("Error extracting archive", e.msg)
                 self.finishInstall.emit("", {})
                 return
             self.normalizeTree(getcwd())
             try:
-                nexusInfo = search("-(\d+)(.+)?$", name)
-                name = sub("-(\d+)(.+)?$", "", name)
+                nexusInfo = search(r"-(\d+)(.+)?$", name)
+                name = sub(r"-(\d+)(.+)?$", "", name)
                 data["id"] = nexusInfo[1]
                 data["version"] = nexusInfo[2].replace("-", ".")[1:]
             except Exception:
