@@ -132,7 +132,7 @@ class ModPlacer(QMainWindow):
             self._installer.moveToThread(self._installerThread)
             self._installer.installError.connect(self.displayError)
             self._installer.installer.connect(self.installerUI)
-            self._installer.finished.connect(self.installerFinish)
+            self._installer.installFinished.connect(self.installerFinish)
             self.installHelper.connect(self._installer.complete)
             self._installerThread.started.connect(self._installer.prepare)
             self._installerThread.start()
@@ -140,14 +140,16 @@ class ModPlacer(QMainWindow):
     @pyqtSlot(str, dict)
     def installerUI(self, name, data):
         item = self.createItem(name, Qt.Unchecked, data=data)
-        self.changeModInfo(item, allowMerge=True)
-        self.installHelper.emit(item)
+        editedItem = self.changeModInfo(item, allowMerge=True)
+        self.installHelper.emit(editedItem)
 
     @pyqtSlot(object)
     def installerFinish(self, item):
-        if not self.Ui.modListWidget.findItems(item.data(Qt.UserRole),
-                                               Qt.MatchExactly):
-            self.Ui.modListWidget.addItem(item)
+        if item is not None:
+            if not self.Ui.modListWidget.findItems(item.data(Qt.UserRole),
+                                                Qt.MatchExactly):
+                self.Ui.modListWidget.addItem(item)
+                self.saveConfig()
         self._installerThread.quit()
 
     def refreshMods(self, *, save=True):
@@ -213,6 +215,7 @@ class ModPlacer(QMainWindow):
                 item.setText(item.data(Qt.UserRole))
             item.setToolTip(f"Version: {item.data(Qt.UserRole + 1)}\n"
                             f"Id: {item.data(Qt.UserRole + 2)}")
+            return item
 
     def saveMods(self):
         self.refreshMods()

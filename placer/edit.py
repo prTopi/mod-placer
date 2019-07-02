@@ -76,9 +76,9 @@ class EditModDialog(QDialog):
 
     def accept(self):
         name = self.Ui.nameLineEdit.text()
-        if (name != self._item.data(Qt.UserRole) and
-                name in listdir(self._modConf["mods"])):
+        if name in listdir(self._modConf["mods"]):
             if not self._allowMerge:
+                if name != self._item.data(Qt.UserRole):
                     QMessageBox.warning(self, "Mod already exists",
                                         "Mod with that name already exists.",
                                         QMessageBox.Ok)

@@ -13,7 +13,7 @@ from placer import __basedir__
 class InstallWorker(QObject):
     installError = pyqtSignal(str, str)
     installer = pyqtSignal(str, dict)
-    finished = pyqtSignal(object)
+    installFinished = pyqtSignal(object)
 
     def __init__(self, config, headers, target, parent):
         super().__init__()
@@ -29,7 +29,7 @@ class InstallWorker(QObject):
         except ImportError as e:
             self.installError.emit("Import error", e.message)
             self._temp.cleanup()
-            self.finished.emit(None)
+            self.installFinished.emit(None)
             return
 
         name = splitext(basename(self._target))[0]
@@ -41,7 +41,7 @@ class InstallWorker(QObject):
         except ArchiveError as e:
             self.installError.emit("Error extracting archive", e.msg)
             self._temp.cleanup()
-            self.finished.emit(None)
+            self.installFinished.emit(None)
             return
         self.normalizeTree(self._temp.name)
 
@@ -69,12 +69,13 @@ class InstallWorker(QObject):
 
     @pyqtSlot(object)
     def complete(self, item):
-        name = item.data(Qt.UserRole)
-        self.moveTree(self._temp.name, join(self._config["mods"], name))
+        if item is not None:
+            name = item.data(Qt.UserRole)
+            self.moveTree(self._temp.name, join(self._config["mods"], name))
 
         chdir(__basedir__)
         self._temp.cleanup()
-        self.finished.emit(item)
+        self.installFinished.emit(item)
 
     def normalizeTree(self, folder, subDir=False):
         for root, dirs, files in walk(folder):
