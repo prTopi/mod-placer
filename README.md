@@ -1,5 +1,6 @@
 # mod-placer
-Script/program to manage mods of Bethesda games.  
+Script/program to manage mods of Bethesda games.
+
 Made generally for Linux, not tested on anything else. Should work on everything, though on other systems, other programs most likely far surpass this one.
 
 ## Current features
@@ -12,12 +13,10 @@ Made generally for Linux, not tested on anything else. Should work on everything
 - Expand mod installer class:
   - Support FOMOD and BASH (and maybe OMOD)
   - Autoselect `data` folder if it's not the base folder
-  - Ask to merge 2 mods
   - File/folder view, with ability to unselect undesired files
   - Add ability to use system program to extract archive if libarchive fails
-- Speed up saving mods
 - Check for updates from other sites? (LL)
-  
+
 ## Game support
 #### Tested
 - TES V: Skyrim Special Edition
