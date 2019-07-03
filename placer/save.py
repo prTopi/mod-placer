@@ -16,13 +16,12 @@ class SaveWorker(QObject):
 
     def save(self):
         if self._config["Placer"].getboolean("emptyData"):
-            self.copyTree(self._modConf["data"],
-                          join(self._modConf["mods"], "Data Backup"),
-                          move, clean=True)
+            self.cleanData(self._modConf["data"],
+                          join(self._modConf["mods"], "Data Backup"))
 
         for mod in self._mods:
             self.copyTree(join(self._modConf["mods"], mod),
-                          self._modConf["data"], symlink)
+                          self._modConf["data"])
 
         newTime = 946677600
         for root, dirs, files in walk(self._modConf["data"]):
@@ -48,29 +47,35 @@ class SaveWorker(QObject):
 
         self.finished.emit()
 
-    def copyTree(self, srcFolder, dstFolder, function, clean=False):
-        if not clean:
-            if not isdir(dstFolder):
-                mkdir(dstFolder)
-
-        for root, dirs, files in walk(srcFolder):
-            for name in dirs:
-                self.copyTree(join(root, name), join(dstFolder, name),
-                              function, clean)
-
+    def cleanData(self, srcTree, dstTree):
+        for root, dirs, files in walk(srcTree, topdown=False):
+            dstRoot = root.replace(srcTree, dstTree)
             for name in files:
-                source = join(root, name)
-                destination = join(dstFolder, name)
+                src = join(root, name)
+                dst = join(dstRoot, name)
                 try:
-                    unlink(destination)
+                    unlink(dst)
                 except FileNotFoundError:
                     pass
-                if not islink(source):
-                    if clean:
-                        makedirs(dstFolder, exist_ok=True)
-                    function(source, destination)
-                elif clean:
-                    unlink(source)
+                if not islink(src):
+                    makedirs(dstRoot, exist_ok=True)
+                    move(src, dst)
+                unlink(src)
+            for name in dirs:
+                rmdir(join(root, name))
 
-        if clean:
-            rmdir(srcFolder)
+    def copyTree(self, srcTree, dstTree):
+        for root, dirs, files in walk(srcTree):
+            dstRoot = root.replace(srcTree, dstTree)
+            for name in dirs:
+                dst = join(dstRoot, name)
+                if not isdir(dst):
+                    mkdir(dst)
+            for name in files:
+                src = join(root, name)
+                dst = join(dstRoot, name)
+                try:
+                    unlink(dst)
+                except FileNotFoundError:
+                    pass
+                symlink(src, dst)

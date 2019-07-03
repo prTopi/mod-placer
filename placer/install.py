@@ -32,10 +32,8 @@ class InstallWorker(QObject):
             self._temp.cleanup()
             self.installFinished.emit("", {})
             return
-
         name = splitext(basename(self._target))[0]
         data = {"version": "", "source": "Nexus", "id": "", "game": ""}
-
         chdir(self._temp.name)
         try:
             extract_file(self._target)
@@ -44,8 +42,7 @@ class InstallWorker(QObject):
             self._temp.cleanup()
             self.installFinished.emit("", {})
             return
-        self.normalizeTree(self._temp.name)
-
+        files = self.normalizeTree(self._temp.name)
         try:
             nexusInfo = search(r"-(\d+)(.+)?$", name)
             name = sub(r"-(\d+)(.+)?$", "", name)
@@ -53,7 +50,6 @@ class InstallWorker(QObject):
             data["version"] = nexusInfo[2].replace("-", ".")[1:]
         except IndexError:
             pass
-
         if self._headers and data["id"]:
             try:
                 url = "https://api.nexusmods.com/v1/games/" \
@@ -67,50 +63,41 @@ class InstallWorker(QObject):
                 pass
         elif not data["id"]:
             data["source"] = "Other"
-
         installer = 0
         files = {}
-
         self.installer.emit(name, data, installer, files)
 
     @pyqtSlot(str, dict, dict)
     def complete(self, name, data, files):
         if name:
             self.moveTree(self._temp.name, join(self._config["mods"], name))
-
         chdir(__basedir__)
         self._temp.cleanup()
         self.installFinished.emit(name, data)
 
-    def normalizeTree(self, folder, subDir=False):
-        for root, dirs, files in walk(folder):
-            for name in dirs:
-                self.normalizeTree(join(root, name), True)
-
+    def normalizeTree(self, folder):
+        for root, dirs, files in walk(folder, topdown=False):
             for name in files:
                 lowName = name.lower()
                 if lowName != name:
                     if not lowName.endswith((".bsa", ".esm", ".esp", ".esl")):
-                        move(join(folder, name), join(folder, lowName))
-
-        if subDir:
-            move(folder, join(dirname(folder), basename(folder).lower()))
-
-    def moveTree(self, srcFolder, dstFolder, subDir=False):
-        if not isdir(dstFolder):
-            mkdir(dstFolder)
-
-        for root, dirs, files in walk(srcFolder):
+                        move(join(root, name), join(root, lowName))
             for name in dirs:
-                self.moveTree(join(root, name), join(dstFolder, name), True)
+                move(join(root, name), join(root, name.lower()))
 
+    def moveTree(self, srcTree, dstTree):
+        if not isdir(dstTree):
+            mkdir(dstTree)
+        for root, dirs, files in walk(srcTree):
+            dstRoot = root.replace(srcTree, dstTree)
+            for name in dirs:
+                dst = join(dstRoot, name)
+                if not isdir(dst):
+                    mkdir(dst)
             for name in files:
-                source = join(root, name)
-                destination = join(dstFolder, name)
-                move(source, destination)
-
-        if subDir:
-            rmdir(srcFolder)
+                src = join(root, name)
+                dst = join(dstRoot, name)
+                move(src, dst)
 
 
 class InstallerManualDialog(QDialog):
