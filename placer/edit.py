@@ -64,12 +64,12 @@ class EditModDialog(QDialog):
         self._modConf = modConf
         self.Ui = Ui_EditModDialog()
         self.Ui.setupUi(self)
+        self.Ui.sourceComboBox.currentTextChanged.connect(self.update)
         self.Ui.nameLineEdit.setText(item.data(Qt.UserRole))
         self.Ui.versionLineEdit.setText(item.data(Qt.UserRole + 1))
         self.Ui.sourceComboBox.setCurrentIndex(
             self.Ui.sourceComboBox.findText(item.data(Qt.UserRole + 2),
                                             Qt.MatchExactly))
-        self.Ui.sourceComboBox.currentTextChanged.connect(self.update)
         self.Ui.dataOneLineEdit.setText(item.data(Qt.UserRole + 3))
         self.Ui.dataTwoLineEdit.setText(item.data(Qt.UserRole + 4))
         self.show()
@@ -86,24 +86,18 @@ class EditModDialog(QDialog):
 
     def update(self, text):
         self.Ui.dataOneLabel.show()
-        self.Ui.dataOneLabel.setText("")
         self.Ui.dataOneLineEdit.show()
-        self.Ui.dataOneLineEdit.clear()
-        self.Ui.dataOneLineEdit.setPlaceholderText("")
-        self.Ui.dataTwoLabel.hide()
-        self.Ui.dataTwoLabel.setText("")
-        self.Ui.dataTwoLineEdit.hide()
-        self.Ui.dataTwoLineEdit.clear()
-        self.Ui.dataTwoLineEdit.setPlaceholderText("")
+        self.Ui.dataTwoLabel.show()
+        self.Ui.dataTwoLineEdit.show()
         if text == "Nexus":
             self.Ui.dataOneLabel.setText("Nexus ID")
-            self.Ui.dataTwoLabel.show()
             self.Ui.dataTwoLabel.setText("Nexus Game")
-            self.Ui.dataTwoLineEdit.show()
             self.Ui.dataTwoLineEdit.setPlaceholderText(self._modConf["game"])
         else:
             self.Ui.dataOneLabel.hide()
             self.Ui.dataOneLineEdit.hide()
+            self.Ui.dataTwoLabel.hide()
+            self.Ui.dataTwoLineEdit.hide()
 
     def getItem(self):
         self._item.setData(Qt.UserRole, self.Ui.nameLineEdit.text())

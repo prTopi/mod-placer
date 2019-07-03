@@ -34,7 +34,7 @@ class InstallWorker(QObject):
             return
 
         name = splitext(basename(self._target))[0]
-        data = {"version": "", "id": ""}
+        data = {"version": "", "source": "Nexus", "id": "", "game": ""}
 
         chdir(self._temp.name)
         try:
@@ -65,6 +65,8 @@ class InstallWorker(QObject):
                 data["version"] = page["version"]
             except Exception:
                 pass
+        elif not data["id"]:
+            data["source"] = "Other"
 
         installer = 0
         files = {}

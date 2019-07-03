@@ -142,7 +142,7 @@ class ModPlacer(QMainWindow):
         if not installer:
             dialog = InstallerManualDialog(name, data, self._modConf, self)
         if dialog.exec_():
-            name, data = dialog.getData()
+            name, files = dialog.getData()
         else:
             name = ""
         self.installHelper.emit(name, data, files)
@@ -151,13 +151,15 @@ class ModPlacer(QMainWindow):
     def installerFinish(self, name, data):
         if name:
             self._modDB[name] = data
-            self.addModItem(name, data)
+            self.addModItem(name)
         self._installer = None
         self._installerThread.quit()
 
     def refreshMods(self, *, save=True):
+        if self._installerThread.isRunning():
+            return
+
         if ((isdir(self._modConf["data"]) and isdir(self._modConf["mods"])) or
-                not self._installerThread.isRunning() or
                 not self._saverThread.isRunning()):
             self.Ui.savePushButton.setEnabled(True)
         else:
@@ -193,7 +195,8 @@ class ModPlacer(QMainWindow):
             try:
                 data = self._modDB[name]
             except KeyError:
-                data = {"version": "1.0", "id": ""}
+                data = {"version": "1.0", "source": "Nexus",
+                        "id": "", "game": ""}
             item = self.createItem(name, check=check, data=data)
             self.Ui.modListWidget.addItem(item)
 
@@ -215,8 +218,10 @@ class ModPlacer(QMainWindow):
                 rename(join(self._modConf["mods"], oldName),
                         join(self._modConf["mods"], item.data(Qt.UserRole)))
                 item.setText(item.data(Qt.UserRole))
-            item.setToolTip(f"Version: {item.data(Qt.UserRole + 1)}\n"
-                            f"Id: {item.data(Qt.UserRole + 2)}")
+            self.saveConfig()
+            data = self._modDB[item.data(Qt.UserRole)]
+            tooltip = "\n".join([f"{x.title()}: {data[x]}" for x in data])
+            item.setToolTip(tooltip)
 
     def saveMods(self):
         self.refreshMods()
@@ -242,8 +247,9 @@ class ModPlacer(QMainWindow):
         self._saverThread.start()
 
     def saveConfig(self):
-        if (not isdir(self._modConf["data"]) and
-                not isdir(self._modConf["mods"])):
+        if ((not isdir(self._modConf["data"]) and
+                not isdir(self._modConf["mods"])) or
+                self._installerThread.isRunning()):
             return
 
         self._modConf["ModOrder"] = {}
@@ -254,7 +260,9 @@ class ModPlacer(QMainWindow):
             self._modConf["ModOrder"][index] = (name,
                                                 mod.checkState())
             self._modDB[name] = {"version": mod.data(Qt.UserRole + 1),
-                                 "id": mod.data(Qt.UserRole + 2)}
+                                 "source": mod.data(Qt.UserRole + 2),
+                                 "id": mod.data(Qt.UserRole + 3),
+                                 "game": mod.data(Qt.UserRole + 4)}
 
         self._modConf["LoadOrder"] = {}
         for index in range(self.Ui.loadListWidget.count()):
