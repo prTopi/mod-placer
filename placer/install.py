@@ -83,7 +83,7 @@ class InstallWorker(QObject):
                 lowName = name.lower()
                 if lowName != name:
                     if not lowName.endswith((".bsa", ".esm", ".esp", ".esl")):
-                        move(join(root, name), join(root, lowName))
+                        move(src, join(root, lowName))
             for name in dirs:
                 src = join(root, name)
                 chmod(src, 0o755)
