@@ -60,7 +60,8 @@ class SaveWorker(QObject):
                 if not islink(src):
                     makedirs(dstRoot, exist_ok=True)
                     move(src, dst)
-                unlink(src)
+                else:
+                    unlink(src)
             for name in dirs:
                 rmdir(join(root, name))
 
