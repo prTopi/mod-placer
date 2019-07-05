@@ -1,4 +1,4 @@
-from os import chdir, listdir, mkdir, rmdir, unlink, walk
+from os import chdir, chmod, listdir, mkdir, rmdir, unlink, walk
 from os.path import basename, dirname, isdir, isfile, join, splitext
 from re import search, sub
 from shutil import move
@@ -48,7 +48,7 @@ class InstallWorker(QObject):
             name = sub(r"-(\d+)(.+)?$", "", name)
             data["id"] = nexusInfo[1]
             data["version"] = nexusInfo[2].replace("-", ".")[1:]
-        except IndexError:
+        except (IndexError, TypeError):
             pass
         if self._headers and data["id"]:
             try:
@@ -78,12 +78,16 @@ class InstallWorker(QObject):
     def normalizeTree(self, folder):
         for root, dirs, files in walk(folder, topdown=False):
             for name in files:
+                src = join(root, name)
+                chmod(src, 0o644)
                 lowName = name.lower()
                 if lowName != name:
                     if not lowName.endswith((".bsa", ".esm", ".esp", ".esl")):
                         move(join(root, name), join(root, lowName))
             for name in dirs:
-                move(join(root, name), join(root, name.lower()))
+                src = join(root, name)
+                chmod(src, 0o755)
+                move(src, join(root, name.lower()))
 
     def moveTree(self, srcTree, dstTree):
         if not isdir(dstTree):
@@ -95,9 +99,10 @@ class InstallWorker(QObject):
                 if not isdir(dst):
                     mkdir(dst)
             for name in files:
-                src = join(root, name)
-                dst = join(dstRoot, name)
-                move(src, dst)
+                if name != "desktop.ini" and name != "thumbs.db":
+                    src = join(root, name)
+                    dst = join(dstRoot, name)
+                    move(src, dst)
 
 
 class InstallerManualDialog(QDialog):
