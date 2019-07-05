@@ -71,6 +71,7 @@ class EditModDialog(QDialog):
             self.Ui.sourceComboBox.findText(item.data(Qt.UserRole + 2),
                                             Qt.MatchExactly))
         self.Ui.dataOneLineEdit.setText(item.data(Qt.UserRole + 3))
+        self.Ui.dataTwoLineEdit.setPlaceholderText(self._modConf["game"])
         self.Ui.dataTwoLineEdit.setText(item.data(Qt.UserRole + 4))
         self.show()
 
@@ -92,7 +93,6 @@ class EditModDialog(QDialog):
         if text == "Nexus":
             self.Ui.dataOneLabel.setText("Nexus ID")
             self.Ui.dataTwoLabel.setText("Nexus Game")
-            self.Ui.dataTwoLineEdit.setPlaceholderText(self._modConf["game"])
         else:
             self.Ui.dataOneLabel.hide()
             self.Ui.dataOneLineEdit.hide()
