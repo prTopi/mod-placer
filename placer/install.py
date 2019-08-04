@@ -48,7 +48,7 @@ class InstallWorker(QObject):
             name = sub(r"-(\d+)(.+)?$", "", name)
             data["id"] = nexusInfo[1]
             data["version"] = nexusInfo[2].replace("-", ".")[1:]
-        except (IndexError, TypeError):
+        except (AttributeError, IndexError, TypeError):
             pass
         if self._headers and data["id"]:
             try:
