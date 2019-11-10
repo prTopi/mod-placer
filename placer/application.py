@@ -22,7 +22,7 @@ class ModPlacer(QMainWindow):
         super().__init__()
         self._initialized = False
         self._config = ConfigParser()
-        self._config.read("placer.ini")
+        self._config.read(join(__basedir__, "placer.ini"))
         self._config.setdefault("Placer", {})
         self._config.setdefault("Updates", {})
         self._config["Placer"].setdefault("config", "")
@@ -77,7 +77,7 @@ class ModPlacer(QMainWindow):
 
         config = self._config["Placer"]["config"]
         try:
-            with open(self._config["Placer"]["config"]) as f:
+            with open(join(__basedir__, config)) as f:
                 self._modConf = load(f)
         except FileNotFoundError:
             self.loadConfig()
@@ -113,7 +113,7 @@ class ModPlacer(QMainWindow):
         self.Ui.actionCheckForUpdates.setEnabled(True)
         self.Ui.modListWidget.clear()
         self.Ui.loadListWidget.clear()
-        self.refreshMods(save=False)
+        self.saveMods(initial=True)
 
     @pyqtSlot(str, str)
     def displayError(self, title, content):
@@ -155,8 +155,9 @@ class ModPlacer(QMainWindow):
         self._installer = None
         self._installerThread.quit()
 
-    def refreshMods(self, *, save=True):
-        if self._installerThread.isRunning():
+    def refreshMods(self, *, initial=False):
+        if (self._installerThread.isRunning() or
+                self._saverThread.isRunning()):
             return
 
         if ((isdir(self._modConf["data"]) and isdir(self._modConf["mods"])) or
@@ -166,18 +167,21 @@ class ModPlacer(QMainWindow):
             self.Ui.savePushButton.setEnabled(False)
             return
 
-        if save:
+        if not initial:
             self.saveConfig()
         self.Ui.modListWidget.clear()
         for index in self._modConf["ModOrder"]:
             self.addModItem(*self._modConf["ModOrder"][index])
-        for folder in listdir(self._modConf["mods"]):
-            self.addModItem(folder)
+        if not initial:
+            for folder in listdir(self._modConf["mods"]):
+                self.addModItem(folder)
         self.Ui.loadListWidget.clear()
         for plugin in self._modConf["LoadOrder"]:
-            self.addLoadItem(*self._modConf["LoadOrder"][plugin])
-        for plugin in listdir(self._modConf["data"]):
-            self.addLoadItem(plugin)
+            self.addLoadItem(*self._modConf["LoadOrder"][plugin],
+                             ignoreData=initial)
+        if not initial:
+            for plugin in listdir(self._modConf["data"]):
+                self.addLoadItem(plugin)
 
     def createItem(self, name, check, data={}):
         item = QListWidgetItem(name)
@@ -200,9 +204,9 @@ class ModPlacer(QMainWindow):
             item = self.createItem(name, check=check, data=data)
             self.Ui.modListWidget.addItem(item)
 
-    def addLoadItem(self, name, check=Qt.Unchecked):
+    def addLoadItem(self, name, check=Qt.Unchecked, ignoreData=False):
         if (name.lower().endswith((".esm", ".esp", ".esl")) and
-                isfile(join(self._modConf["data"], name)) and
+                (isfile(join(self._modConf["data"], name)) or ignoreData) and
                 not self.Ui.loadListWidget.findItems(name, Qt.MatchExactly)):
             index = self.Ui.loadListWidget.count()
             data = {"index": index, "id": f"{index:02X}"}
@@ -216,15 +220,15 @@ class ModPlacer(QMainWindow):
             item = dialog.getItem()
             if oldName != item.data(Qt.UserRole):
                 rename(join(self._modConf["mods"], oldName),
-                        join(self._modConf["mods"], item.data(Qt.UserRole)))
+                       join(self._modConf["mods"], item.data(Qt.UserRole)))
                 item.setText(item.data(Qt.UserRole))
             self.saveConfig()
             data = self._modDB[item.data(Qt.UserRole)]
             tooltip = "\n".join([f"{x.title()}: {data[x]}" for x in data])
             item.setToolTip(tooltip)
 
-    def saveMods(self):
-        self.refreshMods()
+    def saveMods(self, initial=False):
+        self.refreshMods(initial=initial)
         if not self.Ui.savePushButton.isEnabled():
             return
 
@@ -242,9 +246,14 @@ class ModPlacer(QMainWindow):
 
         self._saver = SaveWorker(self._config, self._modConf, mods, plugins)
         self._saver.moveToThread(self._saverThread)
-        self._saver.finished.connect(self._saverThread.quit)
+        self._saver.finished.connect(self.endSave)
         self._saverThread.started.connect(self._saver.save)
         self._saverThread.start()
+
+    @pyqtSlot()
+    def endSave(self):
+        self.refreshMods()
+        self._saverThread.quit()
 
     def saveConfig(self):
         if ((not isdir(self._modConf["data"]) and

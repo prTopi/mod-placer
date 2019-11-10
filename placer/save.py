@@ -17,7 +17,7 @@ class SaveWorker(QObject):
     def save(self):
         if self._config["Placer"].getboolean("emptyData"):
             self.cleanData(self._modConf["data"],
-                          join(self._modConf["mods"], "Data Backup"))
+                           join(self._modConf["mods"], "Data Backup"))
 
         for mod in self._mods:
             self.copyTree(join(self._modConf["mods"], mod),

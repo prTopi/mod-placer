@@ -32,7 +32,7 @@ class UpdateWorker(QObject):
         if mod.data(Qt.UserRole + 2) == "Nexus":
             nexusID = mod.data(Qt.UserRole + 3)
             nexusGame = mod.data(Qt.UserRole + 4)
-            if self.nexusID == "":
+            if nexusID == "":
                 return
 
             if nexusGame == "":
@@ -42,7 +42,7 @@ class UpdateWorker(QObject):
 
             try:
                 req = Request("https://api.nexusmods.com/v1/games/"
-                            f"{site}.json", headers=self._headers)
+                              f"{site}.json", headers=self._headers)
                 with urlopen(req) as page:
                     newVersion = load(page)["version"]
                 if mod.data(Qt.UserRole + 1) != newVersion:

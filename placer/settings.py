@@ -1,4 +1,5 @@
 from os import listdir, unlink
+from os.path import join
 from json import load, dump
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import Qt
@@ -43,7 +44,7 @@ class SettingsDialog(QDialog):
 
     def editConfig(self, *, name=""):
         if name in listdir(__basedir__):
-            with open(name) as f:
+            with open(join(__basedir__, name)) as f:
                 config = load(f)
         else:
             config = {}
@@ -62,7 +63,7 @@ class SettingsDialog(QDialog):
             name, config = dialog.getConfig()
             if not name.endswith(".json"):
                 name = name + ".json"
-            with open(name, "w") as f:
+            with open(join(__basedir__, name), "w") as f:
                 dump(config, f)
             if oldName != name:
                 if oldName in listdir(__basedir__):

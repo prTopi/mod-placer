@@ -1,13 +1,12 @@
-from os import chdir, chmod, listdir, mkdir, rmdir, unlink, walk
-from os.path import basename, dirname, isdir, isfile, join, splitext
+from os import chdir, chmod, listdir, mkdir, walk
+from os.path import basename, isdir, join, splitext
 from re import search, sub
 from shutil import move
 from json import load
 from urllib.request import urlopen, Request
-from contextlib import contextmanager
 from tempfile import TemporaryDirectory
 from PyQt5.QtWidgets import QDialog, QMessageBox
-from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from placer import __basedir__
 from placer.ui.installermanual import Ui_InstallerManualDialog
 
@@ -76,6 +75,10 @@ class InstallWorker(QObject):
         self.installFinished.emit(name, data)
 
     def normalizeTree(self, folder):
+        for root, dirs, files in walk(folder):
+            for name in dirs:
+                src = join(root, name)
+                chmod(src, 0o755)
         for root, dirs, files in walk(folder, topdown=False):
             for name in files:
                 src = join(root, name)
@@ -86,7 +89,6 @@ class InstallWorker(QObject):
                         move(src, join(root, lowName))
             for name in dirs:
                 src = join(root, name)
-                chmod(src, 0o755)
                 move(src, join(root, name.lower()))
 
     def moveTree(self, srcTree, dstTree):
@@ -122,7 +124,7 @@ class InstallerManualDialog(QDialog):
             msg = "Mod with that name already exists.\n" \
                 "Do you want to merge these files?"
             cont = QMessageBox.warning(self, "Mod already exists", msg,
-                                        QMessageBox.Yes | QMessageBox.No)
+                                       QMessageBox.Yes | QMessageBox.No)
             if cont == QMessageBox.No:
                 return
         super().accept()
