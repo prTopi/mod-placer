@@ -27,7 +27,7 @@ class InstallWorker(QObject):
         try:
             from libarchive import extract_file, ArchiveError
         except ImportError as e:
-            self.installError.emit("Import error", e.message)
+            self.installError.emit("Import error", str(e))
             self._temp.cleanup()
             self.installFinished.emit("", {})
             return
